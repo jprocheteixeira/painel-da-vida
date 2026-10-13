@@ -37,6 +37,22 @@ export const ESTIMATIVAS_PADRAO = Object.freeze([
   { id: 'e-outros', nome: 'Outros', categoriaId: 'outros' },
 ]);
 
+/** Gastos comuns que não vêm na lista, para adicionar com um toque. */
+export const SUGESTOES_ESTIMATIVA = Object.freeze([
+  { nome: 'Corte de cabelo', categoriaId: 'outros' },
+  { nome: 'Academia', categoriaId: 'saude' },
+  { nome: 'Plano de saúde', categoriaId: 'saude' },
+  { nome: 'Dentista', categoriaId: 'saude' },
+  { nome: 'Uber/ônibus', categoriaId: 'transporte' },
+  { nome: 'Seguro do carro', categoriaId: 'transporte' },
+  { nome: 'IPVA (÷12)', categoriaId: 'transporte' },
+  { nome: 'Delivery', categoriaId: 'lazer' },
+  { nome: 'Pet', categoriaId: 'outros' },
+  { nome: 'Presentes', categoriaId: 'outros' },
+  { nome: 'Cursos e livros', categoriaId: 'estudos' },
+  { nome: 'Jogos', categoriaId: 'hobby' },
+]);
+
 export function estimativasPadrao() {
   return ESTIMATIVAS_PADRAO.map((e) => ({ ...e, valorCentavos: null }));
 }

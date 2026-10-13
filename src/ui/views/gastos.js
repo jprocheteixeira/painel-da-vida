@@ -6,7 +6,7 @@ import {
 import { formatarReais, lerReais, centavosParaCampo } from '../../utils/dinheiro.js';
 import {
   resumoDoMes, ocorrenciasParcelamento, parcelasPagas, novoId, CATEGORIA_RESERVA,
-  totalEstimativa, estimativasPadrao,
+  totalEstimativa, estimativasPadrao, SUGESTOES_ESTIMATIVA,
 } from '../../dominio/gastos.js';
 import { html, icone } from '../util.js';
 import { faixaExemplo } from './pj.js';
@@ -116,6 +116,8 @@ function cartaoEstimativa(estado, r) {
   const total = totalEstimativa(estado.estimativas);
   const preenchidos = estado.estimativas.filter((e) => e.valorCentavos != null).length;
   const removidos = estimativasPadrao().filter((p) => !estado.estimativas.some((e) => e.id === p.id));
+  const nomesUsados = new Set(estado.estimativas.map((e) => e.nome.toLowerCase()));
+  const sugestoes = SUGESTOES_ESTIMATIVA.filter((s) => !nomesUsados.has(s.nome.toLowerCase()));
   const linhas = estado.estimativas.map((e, i) => html`<li class="linha-estimativa">
     <label for="est-${e.id}" class="est-nome">${e.nome}</label>
     <input type="text" id="est-${e.id}" inputmode="decimal" placeholder="R$ 0,00"
@@ -130,11 +132,19 @@ function cartaoEstimativa(estado, r) {
       <p class="subtitulo">Preencha um valor aproximado em cada item. Não tem esse gasto? Exclua no ×. A soma entra na projeção
         do caixa como o mínimo que sai por mês; o que você lança de verdade desconta dela.</p>
       <ul class="lista-estimativas">${html.cru(linhas)}</ul>
-      <form class="avancar-linha" style="margin-top:10px" data-ao-enviar="adicionarEstimativa">
-        <label class="campo"><span>Outro item</span><input type="text" name="nome" required placeholder="Ex.: Academia"></label>
-        <label class="campo" style="flex:0 1 130px"><span>Valor (R$)</span><input type="text" name="valor" inputmode="decimal" placeholder="0,00"></label>
-        <button class="btn" type="submit">${html.cru(icone('mais'))} Incluir</button>
-      </form>
+      <div class="adicionar-estimativa">
+        <p class="adicionar-titulo">${html.cru(icone('mais'))} Adicionar um gasto seu</p>
+        <form class="form-adicionar-estimativa" data-ao-enviar="adicionarEstimativa">
+          <label class="campo"><span>O que é</span><input type="text" id="nova-estimativa" name="nome" required placeholder="Ex.: Corte de cabelo"></label>
+          <label class="campo"><span>Valor por mês (R$)</span><input type="text" name="valor" inputmode="decimal" placeholder="0,00"></label>
+          <label class="campo"><span>Categoria</span><select name="categoria">${html.cru(opcoesCategoria(estado, CATEGORIA_RESERVA))}</select></label>
+          <button class="btn btn-primario" type="submit">${html.cru(icone('mais'))} Adicionar</button>
+        </form>
+        <small class="subtitulo">Gasto que não é todo mês (IPVA, seguro, presente de Natal)? Divida o valor do ano por 12.</small>
+        ${html.cru(sugestoes.length ? html`<p class="rotulo" style="margin-top:10px">Sugestões (um toque adiciona):</p>
+          <div class="sugestoes">${html.cru(sugestoes.map((s) => html`<button type="button" class="chip-sugestao" data-acao="adicionarSugestao"
+            data-nome="${s.nome}" data-categoria="${s.categoriaId}">+ ${s.nome}</button>`))}</div>` : '')}
+      </div>
       <div class="total-estimativa">
         <span>Total estimado · ${preenchidos} ${preenchidos === 1 ? 'item preenchido' : 'itens preenchidos'}</span>
         <strong class="num">${formatarReais(total)}<small class="subtitulo"> /mês</small></strong>
@@ -406,8 +416,20 @@ export const acoes = {
     const v = texto ? lerReais(texto) : null;
     if (!nome) return;
     if (texto && (v == null || v < 0)) { ctx.avisar('Valor inválido.', true); return; }
-    ctx.atualizar((e) => { e.estimativas.push({ id: novoId('e'), nome, categoriaId: CATEGORIA_RESERVA, valorCentavos: v }); },
-      { aviso: `“${nome}” incluído.` });
+    const categoriaId = form.elements.categoria?.value || CATEGORIA_RESERVA;
+    ctx.atualizar((e) => { e.estimativas.push({ id: novoId('e'), nome, categoriaId, valorCentavos: v }); },
+      { aviso: `“${nome}” adicionado.` });
+    document.getElementById('nova-estimativa')?.focus();
+  },
+
+  adicionarSugestao(el, ev, ctx) {
+    const id = novoId('e');
+    const { nome, categoria } = el.dataset;
+    ctx.atualizar((e) => { e.estimativas.push({ id, nome, categoriaId: categoria, valorCentavos: null }); },
+      { aviso: `“${nome}” adicionado. Coloque o valor.` });
+    const campo = document.getElementById(`est-${id}`);
+    campo?.scrollIntoView({ block: 'center' });
+    campo?.focus();
   },
 
   restaurarEstimativas(el, ev, ctx) {
