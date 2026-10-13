@@ -1,27 +1,31 @@
 /* Painel da Vida — mobile-first, tema claro/escuro por tokens. */
 
 :root {
-  --fundo: #f6f4ee;
+  --fundo: #f8f4f3;
   --superficie: #ffffff;
-  --superficie-2: #efece4;
-  --borda: #dcd7cb;
-  --texto: #1b211f;
-  --texto-2: #545d59;
-  --texto-3: #6f7773;
-  --acento: #1f6f5c;
-  --acento-forte: #175546;
-  --acento-suave: #dcefe8;
+  --superficie-2: #f3eaea;
+  --borda: #e6d9d8;
+  --texto: #1b1415;
+  --texto-2: #5e4f51;
+  --texto-3: #6f6264;
+  --acento: #b83a42;
+  --acento-forte: #962a32;
+  --acento-suave: #f9e1e2;
   --sobre-acento: #ffffff;
-  --positivo: #1a7a4c;
+  --marca-fundo: #1b1415;
+  --marca-traco: #e0545c;
+  --positivo: #2f7d4f;
   --alerta: #8a5a00;
   --alerta-fundo: #fff3d6;
   --alerta-borda: #e8c26a;
-  --perigo: #b42318;
-  --perigo-fundo: #fde8e6;
-  --info: #22558f;
-  --info-fundo: #e5eefa;
+  --perigo: #c4231c;
+  --perigo-fundo: #fde6e3;
+  --info: #3e5f8f;
+  --info-fundo: #e9eef6;
   --foco: #2563eb;
-  --sombra: 0 1px 2px rgb(20 30 25 / 6%), 0 4px 16px rgb(20 30 25 / 5%);
+  --serie-1: #3e649e;
+  --serie-2: #d0505a;
+  --sombra: 0 1px 2px rgb(40 15 18 / 6%), 0 4px 16px rgb(40 15 18 / 5%);
   --raio: 14px;
   --raio-p: 9px;
   --fonte: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -29,55 +33,65 @@
   color-scheme: light;
 }
 
+/* Tema rubro-negro: vermelho pastel/carmim + preto. O vermelho de alerta (--perigo) é mais vivo
+   e sempre vem com ícone e texto, para não se confundir com a cor da marca. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="claro"]) {
-    --fundo: #111513;
-    --superficie: #1a201d;
-    --superficie-2: #222a26;
-    --borda: #334039;
-    --texto: #e8ece9;
-    --texto-2: #b3bdb8;
-    --texto-3: #8f9a95;
-    --acento: #4cc3a2;
-    --acento-forte: #6fd6b8;
-    --acento-suave: #1d3a32;
-    --sobre-acento: #0c1a16;
-    --positivo: #5fd193;
+    --fundo: #121011;
+    --superficie: #1c1818;
+    --superficie-2: #262020;
+    --borda: #3a3031;
+    --texto: #f4eeee;
+    --texto-2: #c4b7b8;
+    --texto-3: #9d8f90;
+    --acento: #f0868c;
+    --acento-forte: #f6a6aa;
+    --acento-suave: #3b1e21;
+    --sobre-acento: #1a0c0d;
+    --marca-fundo: #2a1f21;
+    --marca-traco: #f0868c;
+    --positivo: #6fcf97;
     --alerta: #f2c063;
     --alerta-fundo: #33290f;
     --alerta-borda: #7a5d1d;
-    --perigo: #ff8a7d;
-    --perigo-fundo: #3a1a17;
-    --info: #8db8f0;
-    --info-fundo: #17263a;
+    --perigo: #ff6a5c;
+    --perigo-fundo: #3a1715;
+    --info: #9db8e6;
+    --info-fundo: #1b2333;
     --foco: #8ab4ff;
-    --sombra: 0 1px 2px rgb(0 0 0 / 30%);
+    --serie-1: #5f86c4;
+    --serie-2: #e0545c;
+    --sombra: 0 1px 2px rgb(0 0 0 / 35%);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="escuro"] {
-  --fundo: #111513;
-  --superficie: #1a201d;
-  --superficie-2: #222a26;
-  --borda: #334039;
-  --texto: #e8ece9;
-  --texto-2: #b3bdb8;
-  --texto-3: #8f9a95;
-  --acento: #4cc3a2;
-  --acento-forte: #6fd6b8;
-  --acento-suave: #1d3a32;
-  --sobre-acento: #0c1a16;
-  --positivo: #5fd193;
+  --fundo: #121011;
+  --superficie: #1c1818;
+  --superficie-2: #262020;
+  --borda: #3a3031;
+  --texto: #f4eeee;
+  --texto-2: #c4b7b8;
+  --texto-3: #9d8f90;
+  --acento: #f0868c;
+  --acento-forte: #f6a6aa;
+  --acento-suave: #3b1e21;
+  --sobre-acento: #1a0c0d;
+  --marca-fundo: #2a1f21;
+  --marca-traco: #f0868c;
+  --positivo: #6fcf97;
   --alerta: #f2c063;
   --alerta-fundo: #33290f;
   --alerta-borda: #7a5d1d;
-  --perigo: #ff8a7d;
-  --perigo-fundo: #3a1a17;
-  --info: #8db8f0;
-  --info-fundo: #17263a;
+  --perigo: #ff6a5c;
+  --perigo-fundo: #3a1715;
+  --info: #9db8e6;
+  --info-fundo: #1b2333;
   --foco: #8ab4ff;
-  --sombra: 0 1px 2px rgb(0 0 0 / 30%);
+  --serie-1: #5f86c4;
+  --serie-2: #e0545c;
+  --sombra: 0 1px 2px rgb(0 0 0 / 35%);
   color-scheme: dark;
 }
 
@@ -124,8 +138,8 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 .marca { display: flex; align-items: center; gap: 10px; color: var(--texto); text-decoration: none; font-weight: 700; font-size: 1.05rem; }
 .marca svg { width: 30px; height: 30px; }
-.marca rect { fill: var(--acento); }
-.marca path { stroke: var(--sobre-acento); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.marca rect { fill: var(--marca-fundo); }
+.marca path { stroke: var(--marca-traco); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .topo-acoes { display: flex; gap: 6px; }
 
 .abas {
@@ -458,11 +472,12 @@ h1 { font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem); font-weight: 750; letter-s
 .kpi-valor { font-size: clamp(1.25rem, 1rem + 1vw, 1.7rem); letter-spacing: -0.03em; }
 .kpi-destaque {
   background:
-    radial-gradient(120% 140% at 100% 0%, color-mix(in oklch, var(--acento) 55%, transparent), transparent 60%),
-    linear-gradient(135deg, oklch(0.36 0.07 170), oklch(0.27 0.05 200));
-  color: #f2fbf7; border: 0;
+    radial-gradient(120% 150% at 100% 0%, rgb(224 84 92 / 55%), transparent 62%),
+    repeating-linear-gradient(180deg, rgb(255 255 255 / 0%) 0 14px, rgb(255 255 255 / 2.5%) 14px 28px),
+    linear-gradient(135deg, #1b1415 0%, #2a1518 55%, #4a1a20 100%);
+  color: #fbf2f2; border: 0;
 }
-.kpi-destaque .kpi-rotulo, .kpi-destaque .kpi-detalhe { color: color-mix(in oklch, #f2fbf7 78%, transparent); }
+.kpi-destaque .kpi-rotulo, .kpi-destaque .kpi-detalhe { color: rgb(251 242 242 / 80%); }
 .kpi-destaque .kpi-valor { font-size: clamp(1.8rem, 1.3rem + 2vw, 2.6rem); }
 .kpi-destaque strong { color: #fff; }
 
@@ -487,10 +502,6 @@ h1 { font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem); font-weight: 750; letter-s
 @media (max-width: 899px) { .bento .kpi:last-child:nth-child(even) { grid-column: 1 / -1; min-height: 0; } }
 
 /* ---------- F2: gráficos, contas, simulador ---------- */
-:root { --serie-1: #2a78d6; --serie-2: #eb6834; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="claro"]) { --serie-1: #3987e5; --serie-2: #d95926; } }
-:root[data-theme="escuro"] { --serie-1: #3987e5; --serie-2: #d95926; }
-
 .grafico { width: 100%; height: auto; display: block; margin: 4px 0 6px; overflow: visible; }
 .g-grade { stroke: var(--borda); stroke-width: 1; stroke-dasharray: 2 4; }
 .g-base { stroke: var(--texto-3); stroke-width: 1; }
@@ -498,9 +509,9 @@ h1 { font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem); font-weight: 750; letter-s
 .g-previsto { fill-opacity: 0.45; }
 .g-alvo { fill: transparent; cursor: crosshair; }
 .g-alvo:hover + * , .g-alvo:hover { fill: color-mix(in oklch, var(--texto) 5%, transparent); }
-.g-linha { fill: none; stroke: var(--acento); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.g-area { fill: color-mix(in oklch, var(--acento) 14%, transparent); }
-.g-ponto { fill: var(--acento); stroke: var(--superficie); stroke-width: 2; }
+.g-linha { fill: none; stroke: var(--texto); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.g-area { fill: color-mix(in oklch, var(--texto) 7%, transparent); }
+.g-ponto { fill: var(--texto); stroke: var(--superficie); stroke-width: 2; }
 .g-ponto-alerta { fill: var(--perigo); }
 .g-limite { stroke: var(--perigo); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .7; }
 .g-limite-rotulo { fill: var(--perigo); font-weight: 600; }
