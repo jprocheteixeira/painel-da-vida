@@ -31,7 +31,7 @@ porque este repositório é público. Ler esse arquivo no início da sessão, se
 ```
 index.html · css/estilo.css · package.json
 src/utils/      datas.js, dinheiro.js
-src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js
+src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js, agenda.js
 src/storage/    migracoes.js, repositorio.js, backup.js, exemplo.js (seed fictício)
 src/ui/         app.js (rotas, eventos, salvamento, dicas), util.js, graficos.js, views/{painel,pj,caixa,gastos,ajustes}.js
 tests/          *.test.js (node --test) + index.html e navegador/ (rodar no navegador)
@@ -76,6 +76,14 @@ privado/        (fora do Git) meu-perfil.json
   entra só a diferença entre a estimativa e o que já se conhece do mês (lançados + fixos + parcelas). Atalho N = lançar gasto.
   Resumo por categoria em barras horizontais (sem pizza: 10 categorias passariam do limite de cores distinguíveis e
   vermelho/verde são reservados para ruim/bom); barra vermelha só quando passa do orçamento.
+
+- 2026-10-13: **DAS (pedido do usuário):** entra sozinho em Gastos (categoria "Impostos (MEI)", schema v4) no mês do
+  vencimento ou do pagamento; não desconta da estimativa mensal. Lembrete no Painel ("Próximos 14 dias") com botão
+  "Paguei" (`dasPagos`), desfazer em Gastos. **Data do lembrete = último dia útil até o dia 20** (conservador, para não
+  depender da regra de prorrogação). Botão "Pôr na agenda" baixa um .ics (DAS até o horizonte + próxima etapa do PJ),
+  eventos de dia inteiro com aviso na véspera e no dia às 9h, UID fixo para não duplicar ao reimportar.
+- A ferramenta de pré-visualização desta sessão ainda lê o `.claude/launch.json` da pasta do HMI: para testar o Painel,
+  pôr a configuração "painel-da-vida" lá temporariamente e tirar depois (o arquivo é local e ignorado pelo Git).
 
 ## Premissas a confirmar com o usuário/contador
 

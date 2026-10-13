@@ -5,6 +5,7 @@
 
 import { mesDe, somarMeses, ultimoDiaDoMes, intervaloMeses } from '../utils/datas.js';
 import { somar } from '../utils/dinheiro.js';
+import { dasDoPeriodo } from './mei.js';
 
 export const CATEGORIAS_PADRAO = Object.freeze([
   { id: 'mercado', nome: 'Mercado' },
@@ -16,8 +17,11 @@ export const CATEGORIAS_PADRAO = Object.freeze([
   { id: 'lazer', nome: 'Lazer/Comida fora' },
   { id: 'estudos', nome: 'Estudos/Faculdade' },
   { id: 'assinaturas', nome: 'Assinaturas' },
+  { id: 'impostos', nome: 'Impostos (MEI)' },
   { id: 'outros', nome: 'Outros' },
 ]);
+
+export const CATEGORIA_IMPOSTOS = 'impostos';
 
 export const CATEGORIA_RESERVA = 'outros';
 
@@ -102,7 +106,8 @@ export function ocorrenciasFixo(rec, deMes, ateMes) {
 
 /**
  * Todos os gastos do mês, de todas as origens:
- * [{ id, data, valorCentavos, categoriaId, descricao, origem: 'manual'|'fixo'|'parcela', refId }]
+ * [{ id, data, valorCentavos, categoriaId, descricao, origem: 'manual'|'fixo'|'parcela'|'das', refId }]
+ * O DAS do MEI entra sozinho no mês do vencimento (ou do pagamento, se já foi pago).
  */
 export function gastosDoMes(estado, mes) {
   const manuais = estado.lancamentos
@@ -120,7 +125,16 @@ export function gastosDoMes(estado, mes) {
       categoriaId: p.categoriaId || CATEGORIA_RESERVA, descricao: `${p.descricao} (${o.n}/${o.total})`,
       origem: 'parcela', refId: p.id,
     })));
-  return [...manuais, ...fixos, ...parcelas].sort((a, b) => b.data.localeCompare(a.data) || a.id.localeCompare(b.id));
+  const pagos = estado.dasPagos || {};
+  const das = dasDoPeriodo(estado.perfil?.aberturaMei, somarMeses(mes, 1), estado.mei)
+    .map((d) => ({ ...d, data: pagos[d.competencia] || d.vencimento }))
+    .filter((d) => mesDe(d.data) === mes)
+    .map((d) => ({
+      id: `das:${d.competencia}`, data: d.data, valorCentavos: d.valorCentavos, categoriaId: CATEGORIA_IMPOSTOS,
+      descricao: `DAS do MEI (competência ${d.competencia.slice(5)}/${d.competencia.slice(0, 4)})`,
+      origem: 'das', refId: d.competencia,
+    }));
+  return [...manuais, ...fixos, ...parcelas, ...das].sort((a, b) => b.data.localeCompare(a.data) || a.id.localeCompare(b.id));
 }
 
 export function totalDeGastos(itens) {
@@ -154,9 +168,9 @@ export function resumoDoMes(estado, mes) {
   return { mes, total, totalAnterior, variacao: total - totalAnterior, categorias, itens: atuais };
 }
 
-/** Tudo o que já se sabe do mês: lançamentos + fixos + parcelas. */
+/** Tudo o que já se sabe do mês: lançamentos + fixos + parcelas (o DAS fica fora: ele não está na estimativa). */
 export function gastoConhecidoNoMes(estado, mes) {
-  return totalDeGastos(gastosDoMes(estado, mes));
+  return totalDeGastos(gastosDoMes(estado, mes).filter((g) => g.origem !== 'das'));
 }
 
 let contador = 0;

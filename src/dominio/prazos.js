@@ -1,8 +1,9 @@
-// Prazos gerados automaticamente a partir das medições (a agenda manual vem na F4).
+// Prazos gerados automaticamente: medições do PJ e DAS do MEI (a agenda manual vem na F4).
 
-import { diferencaDias, rotuloCompetencia } from '../utils/datas.js';
+import { diferencaDias, rotuloCompetencia, mesDe, formatarData } from '../utils/datas.js';
 import { competenciasDoContrato, diasPrevistos, periodoCompetencia } from './contrato.js';
 import { datasChave, indiceEstado, novaMedicao, resumoMedicao } from './medicao.js';
+import { situacaoDas } from './mei.js';
 
 /** Urgência pela distância até a data: 'atrasado' | 'hoje' | 'proximo' (≤ 3 dias) | 'normal'. */
 export function urgencia(data, hoje) {
@@ -79,3 +80,23 @@ export function linhaDoTempo({ contrato, feriados, marcas, medicoes }, hoje) {
     };
   });
 }
+
+/** Lembretes do DAS ainda não pago (até o mês que vem). */
+export function tarefasDAS(estado, hoje) {
+  return situacaoDas(estado, mesDe(hoje))
+    .filter((d) => !d.pagoEm)
+    .map((d) => ({
+      id: `das:${d.competencia}`, origem: 'das', competencia: d.competencia, data: d.pagarAte,
+      titulo: `Pagar o DAS do MEI (${d.competencia.slice(5)}/${d.competencia.slice(0, 4)})`,
+      detalhe: d.pagarAte !== d.vencimento ? `vence ${formatarData(d.vencimento)}; pague até ${formatarData(d.pagarAte)}` : '',
+      valorCentavos: d.valorCentavos,
+    }));
+}
+
+/** Todas as tarefas automáticas (PJ + DAS), em ordem de data. */
+export function tarefasAutomaticas(estado, hoje) {
+  const { contrato, feriados, marcas, medicoes } = estado;
+  return [...tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje), ...tarefasDAS(estado, hoje)]
+    .sort((a, b) => a.data.localeCompare(b.data));
+}
+

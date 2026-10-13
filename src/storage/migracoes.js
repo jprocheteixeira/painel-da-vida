@@ -7,7 +7,7 @@ import { CAIXA_PADRAO } from '../dominio/caixa.js';
 import { MEI_PADRAO } from '../dominio/mei.js';
 import { categoriasPadrao, estimativasPadrao } from '../dominio/gastos.js';
 
-export const VERSAO_ATUAL = 3;
+export const VERSAO_ATUAL = 4;
 export const ANOS_FERIADOS = [2026, 2027];
 
 export function contasPadrao() {
@@ -31,6 +31,7 @@ export function estadoInicial() {
     lancamentos: [],
     parcelamentos: [],
     estimativas: estimativasPadrao(),
+    dasPagos: {},
     caixa: { ...CAIXA_PADRAO },
     mei: { ...MEI_PADRAO },
     meta: { ultimoBackup: null, exemplo: false },
@@ -49,6 +50,16 @@ const MIGRACOES = [
     versao: 3,
     recorrencias: (dados.recorrencias || []).map((r) => ({ ...r, categoriaId: r.categoriaId || r.categoria || 'contas' })),
   }),
+  // 3 → 4: DAS entra nos gastos (categoria "Impostos (MEI)") e ganha registro de pagamento
+  (dados) => {
+    const categorias = Array.isArray(dados.categorias) ? [...dados.categorias] : undefined;
+    if (categorias && !categorias.some((c) => c.id === 'impostos')) {
+      const iOutros = categorias.findIndex((c) => c.id === 'outros');
+      const nova = { id: 'impostos', nome: 'Impostos (MEI)', orcamentoCentavos: null };
+      if (iOutros < 0) categorias.push(nova); else categorias.splice(iOutros, 0, nova);
+    }
+    return { ...dados, versao: 4, ...(categorias ? { categorias } : {}), dasPagos: dados.dasPagos || {} };
+  },
 ];
 
 const ehObjeto = (v) => v && typeof v === 'object' && !Array.isArray(v);
@@ -60,7 +71,7 @@ function completar(dados) {
   for (const chave of ['perfil', 'contrato', 'caixa', 'mei', 'meta']) {
     d[chave] = { ...base[chave], ...(ehObjeto(dados[chave]) ? dados[chave] : {}) };
   }
-  for (const chave of ['marcas', 'medicoes']) {
+  for (const chave of ['marcas', 'medicoes', 'dasPagos']) {
     if (!ehObjeto(d[chave])) d[chave] = {};
   }
   if (!Array.isArray(d.feriados)) d.feriados = base.feriados;

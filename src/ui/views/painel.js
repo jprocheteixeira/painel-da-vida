@@ -6,12 +6,14 @@ import {
 import { formatarReais, somar } from '../../utils/dinheiro.js';
 import { competenciaDoDia } from '../../dominio/contrato.js';
 import { indiceEstado, ESTADOS } from '../../dominio/medicao.js';
-import { tarefasPJ, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
+import { tarefasPJ, tarefasAutomaticas, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
+import { situacaoDas } from '../../dominio/mei.js';
+import { gerarICS, tarefasParaEventos, carimboICS } from '../../dominio/agenda.js';
 import { precisaLembreteBackup } from '../../storage/backup.js';
 import { saldoAtual, projecao } from '../../dominio/caixa.js';
 import { resumoDoMes, totalEstimativa } from '../../dominio/gastos.js';
 import { mesDe } from '../../utils/datas.js';
-import { html, icone } from '../util.js';
+import { html, icone, baixarArquivo } from '../util.js';
 import { faixaExemplo } from './pj.js';
 
 export function titulo() {
@@ -58,7 +60,7 @@ export function render(ctx) {
   const recebidoTotal = somar(linhas.filter((l) => l.medicao.estado === 'pago').map((l) => l.valorCentavos));
   const previstoTotal = somar(linhas.map((l) => (l.medicao.estado === 'trabalhando' ? l.valorPrevistoCentavos : l.valorCentavos)));
 
-  const prazos = proximosPrazos(tarefasPJ(dados, hoje), hoje, 14);
+  const prazos = proximosPrazos(tarefasAutomaticas(estado, hoje), hoje, 14);
   const gastosMes = resumoDoMes(estado, mesDe(hoje));
   const gastoEstimado = totalEstimativa(estado.estimativas);
   const abaixoReserva = projecao(estado, hoje).filter((p) => p.abaixoDaReserva).length
@@ -108,12 +110,17 @@ export function render(ctx) {
 
     <div class="grade grade-2">
       <section class="cartao" aria-labelledby="t-prazos">
-        <h2 id="t-prazos">Próximos 14 dias</h2>
+        <h2 id="t-prazos">Próximos 14 dias
+          <button type="button" class="btn btn-pequeno" data-acao="exportarAgenda" title="Baixa um arquivo .ics com avisos na véspera e no dia">
+            ${html.cru(icone('calendario'))} Pôr na agenda</button></h2>
         ${html.cru(prazos.length ? html`<ul class="lista-prazos">${html.cru(prazos.map((t) => html`
           <li class="prazo prazo--${t.urgencia}">
             <span class="prazo-data"><small>${nomeSemana(t.data, true)}</small>${formatarDataCurta(t.data)}</span>
-            <span class="prazo-titulo">${t.titulo}<small>${rotuloUrgencia(t, hoje)}</small></span>
-            <a class="btn btn-pequeno" href="#/pj/${t.mes}">Abrir</a>
+            <span class="prazo-titulo">${t.titulo}${html.cru(t.valorCentavos && t.origem === 'das' ? ` · <span class="num">${formatarReais(t.valorCentavos)}</span>` : '')}
+              <small>${rotuloUrgencia(t, hoje)}${t.detalhe ? ` · ${t.detalhe}` : ''}</small></span>
+            ${html.cru(t.origem === 'das'
+              ? html`<button type="button" class="btn btn-pequeno" data-acao="pagarDas" data-competencia="${t.competencia}">${html.cru(icone('check'))} Paguei</button>`
+              : html`<a class="btn btn-pequeno" href="#/pj/${t.mes}">Abrir</a>`)}
           </li>`))}</ul>` : '<p class="vazio">Nenhum prazo nos próximos 14 dias.</p>')}
       </section>
 
@@ -178,6 +185,30 @@ function lembreteBackup(ctx) {
 }
 
 export const acoes = {
+  pagarDas(el, ev, ctx) {
+    const comp = el.dataset.competencia;
+    ctx.atualizar((e) => { e.dasPagos = { ...e.dasPagos, [comp]: ctx.hoje }; },
+      { aviso: `DAS ${comp.slice(5)}/${comp.slice(0, 4)} marcado como pago em ${formatarData(ctx.hoje)}.` });
+  },
+
+  exportarAgenda(el, ev, ctx) {
+    const { estado, hoje } = ctx;
+    // DAS de todos os meses até o fim da projeção + a próxima etapa de cada mês do contrato
+    const das = situacaoDas(estado, estado.caixa.horizonte)
+      .filter((d) => !d.pagoEm && d.pagarAte >= hoje)
+      .map((d) => ({
+        id: `das:${d.competencia}`, data: d.pagarAte, valorCentavos: d.valorCentavos,
+        titulo: `Pagar o DAS do MEI (${d.competencia.slice(5)}/${d.competencia.slice(0, 4)})`,
+        detalhe: d.pagarAte !== d.vencimento ? `Vence ${formatarData(d.vencimento)}.` : '',
+      }));
+    const { contrato, feriados, marcas, medicoes } = estado;
+    const pj = tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje).filter((t) => t.data >= hoje);
+    const eventos = tarefasParaEventos([...das, ...pj]);
+    if (!eventos.length) { ctx.avisar('Nenhum prazo futuro para exportar.', true); return; }
+    baixarArquivo(`painel-da-vida-prazos-${hoje}.ics`, gerarICS(eventos, carimboICS()), 'text/calendar');
+    ctx.avisar(`${eventos.length} prazos exportados. Abra o arquivo para adicionar à agenda.`);
+  },
+
   carregarExemplo: (el, ev, ctx) => ctx.carregarExemplo(),
   apagarExemplo: (el, ev, ctx) => ctx.apagarExemplo(),
 };

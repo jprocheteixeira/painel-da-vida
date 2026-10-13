@@ -132,6 +132,8 @@ function cartaoEstimativa(estado, r) {
       <p class="subtitulo">Preencha um valor aproximado em cada item. Não tem esse gasto? Exclua no ×. A soma entra na projeção
         do caixa como o mínimo que sai por mês; o que você lança de verdade desconta dela.</p>
       <ul class="lista-estimativas">${html.cru(linhas)}</ul>
+      ${html.cru(estado.perfil.aberturaMei ? html`<p class="nota-das">${html.cru(icone('check', 'ic ic-p'))} <strong>DAS do MEI (${formatarReais(estado.mei.valorDasCentavos)})</strong>
+        já entra sozinho todo mês, com lembrete no Painel. Não precisa pôr aqui.</p>` : '')}
       <div class="adicionar-estimativa">
         <p class="adicionar-titulo">${html.cru(icone('mais'))} Adicionar um gasto seu</p>
         <form class="form-adicionar-estimativa" data-ao-enviar="adicionarEstimativa">
@@ -195,7 +197,7 @@ function cartaoCategorias(r) {
 
 // ---------- lista ----------
 
-const ROTULO_ORIGEM = { fixo: 'fixo', parcela: 'parcela' };
+const ROTULO_ORIGEM = { fixo: 'fixo', parcela: 'parcela', das: 'imposto' };
 
 function cartaoLancamentos(estado, r, mes) {
   const porDia = {};
@@ -209,7 +211,9 @@ function cartaoLancamentos(estado, r, mes) {
         <span class="num">${formatarReais(i.valorCentavos)}</span>
         ${html.cru(i.origem === 'manual'
           ? html`<button type="button" class="btn btn-icone btn-fantasma btn-pequeno" data-acao="apagarLancamento" data-id="${i.refId}" aria-label="Apagar gasto de ${formatarReais(i.valorCentavos)} em ${formatarData(i.data)}">${html.cru(icone('lixo'))}</button>`
-          : '<span class="gasto-auto" title="Gerado automaticamente; edite no cartão de fixos ou parcelados">auto</span>')}
+          : i.origem === 'das' && estado.dasPagos?.[i.refId]
+            ? html`<button type="button" class="btn btn-icone btn-fantasma btn-pequeno" data-acao="desfazerDas" data-competencia="${i.refId}" aria-label="Desfazer pagamento do DAS" title="Pago em ${formatarData(estado.dasPagos[i.refId])} · desfazer">${html.cru(icone('desfazer'))}</button>`
+            : '<span class="gasto-auto" title="Gerado automaticamente; edite no cartão de fixos ou parcelados">auto</span>')}
       </li>`))}</ul>
     </li>`);
   return html`
@@ -437,6 +441,12 @@ export const acoes = {
       const faltando = estimativasPadrao().filter((p) => !e.estimativas.some((x) => x.id === p.id));
       e.estimativas.push(...faltando);
     }, { aviso: 'Itens de volta.' });
+  },
+
+  desfazerDas(el, ev, ctx) {
+    const comp = el.dataset.competencia;
+    ctx.atualizar((e) => { const p = { ...e.dasPagos }; delete p[comp]; e.dasPagos = p; },
+      { aviso: `Pagamento do DAS ${comp.slice(5)}/${comp.slice(0, 4)} desfeito; o lembrete voltou ao Painel.` });
   },
 
   carregarExemplo: (el, ev, ctx) => ctx.carregarExemplo(),

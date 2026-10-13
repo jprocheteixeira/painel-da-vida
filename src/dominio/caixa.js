@@ -66,8 +66,9 @@ export function fluxos(estado, hoje) {
   const { caixa } = estado;
   const deMes = caixa.saldoEm ? mesDe(caixa.saldoEm) : mesDe(hoje);
   const ateMes = caixa.horizonte;
+  const pagos = estado.dasPagos || {};
   const das = dasDoPeriodo(estado.perfil.aberturaMei, ateMes, estado.mei).map((d) => ({
-    data: d.vencimento, valorCentavos: -d.valorCentavos, descricao: `DAS ${d.competencia}`, origem: 'das',
+    data: pagos[d.competencia] || d.vencimento, valorCentavos: -d.valorCentavos, descricao: `DAS ${d.competencia}`, origem: 'das',
   }));
   const fixos = estado.recorrencias.flatMap((r) => ocorrenciasRecorrencia(r, deMes, ateMes));
   const parcelas = estado.parcelamentos.flatMap((p) => ocorrenciasParcelamento(p)

@@ -80,8 +80,9 @@ test('caixa desconta gastos lançados, parcelas e o restante da estimativa mensa
 
 test('migração da v2 cria categorias e põe categoria nos fixos', () => {
   const d = migrar({ versao: 2, recorrencias: [{ id: 'r', descricao: 'Net', valorCentavos: 9990, dia: 5, categoria: null }] });
-  assert.equal(d.versao, 3);
-  assert.equal(d.categorias.length, 10);
+  assert.equal(d.versao, 4);
+  assert.equal(d.categorias.length, 11);
+  assert.deepEqual(d.dasPagos, {});
   assert.equal(d.recorrencias[0].categoriaId, 'contas');
   assert.deepEqual(d.lancamentos, []);
   assert.ok(d.estimativas.some((x) => x.nome === 'Gasolina' && x.valorCentavos === null));
