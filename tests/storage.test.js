@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estadoInicial, migrar, VERSAO_ATUAL } from '../src/storage/migracoes.js';
-import { gerarBackup, lerBackup, precisaLembreteBackup } from '../src/storage/backup.js';
+import { gerarBackup, lerBackup, precisaLembreteBackup, proximoBackup } from '../src/storage/backup.js';
 import { estadoDeExemplo } from '../src/storage/exemplo.js';
 
 test('migra dados sem versão e completa padrões', () => {
@@ -34,12 +34,18 @@ test('backup vai e volta igual', () => {
   assert.deepEqual(lerBackup(texto), e);
 });
 
-test('lembrete de backup a cada 30 dias', () => {
+test('lembrete de backup no último dia útil do mês', () => {
   const e = estadoInicial();
-  assert.equal(precisaLembreteBackup(e, '2026-11-01'), false); // sem dados
-  e.contrato.inicio = '2026-10-14';
-  assert.equal(precisaLembreteBackup(e, '2026-11-01'), true); // nunca fez
-  e.meta.ultimoBackup = '2026-10-10';
-  assert.equal(precisaLembreteBackup(e, '2026-11-08'), false);
-  assert.equal(precisaLembreteBackup(e, '2026-11-09'), true);
+  assert.equal(precisaLembreteBackup(e, '2026-10-30'), false); // sem dados
+  e.contrato.inicio = '2026-10-13';
+  assert.equal(proximoBackup(e, '2026-10-13'), '2026-10-30');
+  assert.equal(precisaLembreteBackup(e, '2026-10-29'), false);
+  assert.equal(precisaLembreteBackup(e, '2026-10-30'), true);
+  assert.equal(precisaLembreteBackup(e, '2026-11-03'), true); // continua até fazer
+  e.meta.ultimoBackup = '2026-10-30';
+  assert.equal(precisaLembreteBackup(e, '2026-11-03'), false);
+  assert.equal(proximoBackup(e, '2026-11-03'), '2026-11-30');
+  assert.equal(proximoBackup(e, '2027-01-04'), '2026-12-31'); // dezembro ficou para trás
+  e.meta.ultimoBackup = '2026-12-31';
+  assert.equal(proximoBackup(e, '2026-12-31'), '2027-01-29');
 });

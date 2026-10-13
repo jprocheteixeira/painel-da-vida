@@ -6,10 +6,9 @@ import {
 import { formatarReais, somar } from '../../utils/dinheiro.js';
 import { competenciaDoDia } from '../../dominio/contrato.js';
 import { indiceEstado, ESTADOS } from '../../dominio/medicao.js';
-import { tarefasPJ, tarefasAutomaticas, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
-import { situacaoDas } from '../../dominio/mei.js';
+import { tarefasPJ, tarefasDAS, tarefasAutomaticas, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
 import { gerarICS, tarefasParaEventos, carimboICS } from '../../dominio/agenda.js';
-import { precisaLembreteBackup } from '../../storage/backup.js';
+import { precisaLembreteBackup, proximoBackup, datasBackup } from '../../storage/backup.js';
 import { saldoAtual, projecao } from '../../dominio/caixa.js';
 import { resumoDoMes, totalEstimativa } from '../../dominio/gastos.js';
 import { mesDe } from '../../utils/datas.js';
@@ -60,7 +59,10 @@ export function render(ctx) {
   const recebidoTotal = somar(linhas.filter((l) => l.medicao.estado === 'pago').map((l) => l.valorCentavos));
   const previstoTotal = somar(linhas.map((l) => (l.medicao.estado === 'trabalhando' ? l.valorPrevistoCentavos : l.valorCentavos)));
 
-  const prazos = proximosPrazos(tarefasAutomaticas(estado, hoje), hoje, 14);
+  const backup = proximoBackup(estado, hoje);
+  const tarefaBackup = backup ? [{ id: `backup:${backup}`, origem: 'backup', data: backup, titulo: 'Fazer o backup do mês' }] : [];
+  const prazos = proximosPrazos([...tarefasAutomaticas(estado, hoje), ...tarefaBackup]
+    .sort((a, b) => a.data.localeCompare(b.data)), hoje, 14);
   const gastosMes = resumoDoMes(estado, mesDe(hoje));
   const gastoEstimado = totalEstimativa(estado.estimativas);
   const abaixoReserva = projecao(estado, hoje).filter((p) => p.abaixoDaReserva).length
@@ -116,11 +118,9 @@ export function render(ctx) {
         ${html.cru(prazos.length ? html`<ul class="lista-prazos">${html.cru(prazos.map((t) => html`
           <li class="prazo prazo--${t.urgencia}">
             <span class="prazo-data"><small>${nomeSemana(t.data, true)}</small>${formatarDataCurta(t.data)}</span>
-            <span class="prazo-titulo">${t.titulo}${html.cru(t.valorCentavos && t.origem === 'das' ? ` · <span class="num">${formatarReais(t.valorCentavos)}</span>` : '')}
+            <span class="prazo-titulo">${t.titulo}${html.cru(t.valorCentavos && t.origem.startsWith('das') ? ` · <span class="num">${formatarReais(t.valorCentavos)}</span>` : '')}
               <small>${rotuloUrgencia(t, hoje)}${t.detalhe ? ` · ${t.detalhe}` : ''}</small></span>
-            ${html.cru(t.origem === 'das'
-              ? html`<button type="button" class="btn btn-pequeno" data-acao="pagarDas" data-competencia="${t.competencia}">${html.cru(icone('check'))} Paguei</button>`
-              : html`<a class="btn btn-pequeno" href="#/pj/${t.mes}">Abrir</a>`)}
+            ${html.cru(botaoPrazo(t))}
           </li>`))}</ul>` : '<p class="vazio">Nenhum prazo nos próximos 14 dias.</p>')}
       </section>
 
@@ -178,32 +178,38 @@ function lembreteBackup(ctx) {
       ${html.cru(icone('alerta'))}
       <div><strong>Hora do backup mensal</strong>
         ${ultimo ? `O último foi em ${formatarData(ultimo)}.` : 'Você ainda não fez nenhum.'}
-        Os dados vivem só neste navegador; o backup é o que permite recuperar ou levar para outro aparelho.
+        O backup é feito todo mês no último dia útil, junto com o boletim. Os dados vivem só neste aparelho: o backup é o que permite recuperar tudo se o celular for trocado ou o Chrome for limpo.
         <div class="acoes"><button type="button" class="btn btn-pequeno btn-primario" data-acao="exportar">Baixar backup agora</button></div>
       </div>
     </div>`;
 }
 
+function botaoPrazo(t) {
+  if (t.origem === 'das') {
+    return html`<button type="button" class="btn btn-pequeno" data-acao="pagarDas" data-competencia="${t.competencia}">${html.cru(icone('check'))} Paguei</button>`;
+  }
+  if (t.origem === 'das-pedir') {
+    return html`<button type="button" class="btn btn-pequeno" data-acao="pedirDas" data-competencia="${t.competencia}">${html.cru(icone('check'))} Já pedi</button>`;
+  }
+  if (t.origem === 'backup') {
+    return html`<button type="button" class="btn btn-pequeno" data-acao="exportar">Fazer backup</button>`;
+  }
+  return html`<a class="btn btn-pequeno" href="#/pj/${t.mes}">Abrir</a>`;
+}
+
 export const acoes = {
-  pagarDas(el, ev, ctx) {
-    const comp = el.dataset.competencia;
-    ctx.atualizar((e) => { e.dasPagos = { ...e.dasPagos, [comp]: ctx.hoje }; },
-      { aviso: `DAS ${comp.slice(5)}/${comp.slice(0, 4)} marcado como pago em ${formatarData(ctx.hoje)}.` });
-  },
+  pagarDas: (el, ev, ctx) => ctx.marcarDasPago(el.dataset.competencia),
+  pedirDas: (el, ev, ctx) => ctx.marcarDasPedido(el.dataset.competencia),
 
   exportarAgenda(el, ev, ctx) {
     const { estado, hoje } = ctx;
-    // DAS de todos os meses até o fim da projeção + a próxima etapa de cada mês do contrato
-    const das = situacaoDas(estado, estado.caixa.horizonte)
-      .filter((d) => !d.pagoEm && d.pagarAte >= hoje)
-      .map((d) => ({
-        id: `das:${d.competencia}`, data: d.pagarAte, valorCentavos: d.valorCentavos,
-        titulo: `Pagar o DAS do MEI (${d.competencia.slice(5)}/${d.competencia.slice(0, 4)})`,
-        detalhe: d.pagarAte !== d.vencimento ? `Vence ${formatarData(d.vencimento)}.` : '',
-      }));
+    // DAS (e pedidos de dinheiro) até o fim da projeção + próxima etapa de cada mês do contrato + backups
+    const das = tarefasDAS(estado, hoje, estado.caixa.horizonte).filter((t) => t.data >= hoje);
     const { contrato, feriados, marcas, medicoes } = estado;
     const pj = tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje).filter((t) => t.data >= hoje);
-    const eventos = tarefasParaEventos([...das, ...pj]);
+    const backups = datasBackup(estado, hoje, estado.caixa.horizonte)
+      .map((d) => ({ id: `backup:${d}`, data: d, titulo: 'Fazer o backup do Painel da Vida' }));
+    const eventos = tarefasParaEventos([...das, ...pj, ...backups]);
     if (!eventos.length) { ctx.avisar('Nenhum prazo futuro para exportar.', true); return; }
     baixarArquivo(`painel-da-vida-prazos-${hoje}.ics`, gerarICS(eventos, carimboICS()), 'text/calendar');
     ctx.avisar(`${eventos.length} prazos exportados. Abra o arquivo para adicionar à agenda.`);

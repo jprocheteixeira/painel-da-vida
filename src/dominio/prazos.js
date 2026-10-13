@@ -1,6 +1,6 @@
 // Prazos gerados automaticamente: medições do PJ e DAS do MEI (a agenda manual vem na F4).
 
-import { diferencaDias, rotuloCompetencia, mesDe, formatarData } from '../utils/datas.js';
+import { diferencaDias, rotuloCompetencia, mesDe, formatarData, somarDias } from '../utils/datas.js';
 import { competenciasDoContrato, diasPrevistos, periodoCompetencia } from './contrato.js';
 import { datasChave, indiceEstado, novaMedicao, resumoMedicao } from './medicao.js';
 import { situacaoDas } from './mei.js';
@@ -81,16 +81,33 @@ export function linhaDoTempo({ contrato, feriados, marcas, medicoes }, hoje) {
   });
 }
 
-/** Lembretes do DAS ainda não pago (até o mês que vem). */
-export function tarefasDAS(estado, hoje) {
-  return situacaoDas(estado, mesDe(hoje))
+export const DIAS_ANTES_PEDIR = 7;
+
+/**
+ * Lembretes do DAS ainda não pago (até o mês que vem). Se outra pessoa paga, vem antes um lembrete
+ * para pedir o dinheiro (uma semana antes do prazo, ou hoje se já passou).
+ */
+export function tarefasDAS(estado, hoje, ateMes = mesDe(hoje)) {
+  return situacaoDas(estado, ateMes)
     .filter((d) => !d.pagoEm)
-    .map((d) => ({
-      id: `das:${d.competencia}`, origem: 'das', competencia: d.competencia, data: d.pagarAte,
-      titulo: `Pagar o DAS do MEI (${d.competencia.slice(5)}/${d.competencia.slice(0, 4)})`,
-      detalhe: d.pagarAte !== d.vencimento ? `vence ${formatarData(d.vencimento)}; pague até ${formatarData(d.pagarAte)}` : '',
-      valorCentavos: d.valorCentavos,
-    }));
+    .flatMap((d) => {
+      const comp = `${d.competencia.slice(5)}/${d.competencia.slice(0, 4)}`;
+      const prazo = d.pagarAte !== d.vencimento ? `vence ${formatarData(d.vencimento)}; pague até ${formatarData(d.pagarAte)}` : '';
+      const pagar = {
+        id: `das:${d.competencia}`, origem: 'das', competencia: d.competencia, data: d.pagarAte,
+        titulo: `Pagar o DAS do MEI (${comp})${d.pagoPor ? ` · dinheiro do ${d.pagoPor}` : ''}`,
+        detalhe: prazo, valorCentavos: d.valorCentavos,
+      };
+      if (!d.pagoPor || d.pedidoEm) return [pagar];
+      const pedirEm = somarDias(d.pagarAte, -DIAS_ANTES_PEDIR);
+      const pedir = {
+        id: `das-pedir:${d.competencia}`, origem: 'das-pedir', competencia: d.competencia,
+        data: pedirEm > hoje ? pedirEm : hoje,
+        titulo: `Pedir ao ${d.pagoPor} o dinheiro do DAS (${comp})`,
+        detalhe: `para pagar até ${formatarData(d.pagarAte)}`, valorCentavos: d.valorCentavos,
+      };
+      return [pedir, pagar];
+    });
 }
 
 /** Todas as tarefas automáticas (PJ + DAS), em ordem de data. */

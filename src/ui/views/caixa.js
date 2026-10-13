@@ -6,6 +6,7 @@ import {
   projecao, saldoAtual, competenciaVsCaixa, gradeSimulador, saldoNoFimDe,
 } from '../../dominio/caixa.js';
 import { totalEstimativa } from '../../dominio/gastos.js';
+import { situacaoDas } from '../../dominio/mei.js';
 import { html, icone } from '../util.js';
 import { barrasAgrupadas, linhaSaldo } from '../graficos.js';
 import { faixaExemplo } from './pj.js';
@@ -69,6 +70,7 @@ export function render(ctx) {
       ${html.cru(cartaoProjecao(estado, proj, reserva))}
       ${html.cru(cartaoSimulador(estado, hoje, virada))}
       ${html.cru(cartaoContas(estado))}
+      ${html.cru(cartaoDas(estado, hoje))}
     </div>`;
 }
 
@@ -184,6 +186,56 @@ function cartaoContas(estado) {
     </section>`;
 }
 
+function cartaoDas(estado, hoje) {
+  const lista = situacaoDas(estado, estado.caixa.horizonte);
+  if (!lista.length) {
+    return html`<section class="cartao" aria-labelledby="t-das"><h2 id="t-das">DAS do MEI</h2>
+      <p class="vazio">Informe a data de abertura do MEI em Ajustes → Perfil.</p></section>`;
+  }
+  const opcoes = (atual) => ['', 'Pai', 'Mãe'].concat(atual && !['Pai', 'Mãe'].includes(atual) ? [atual] : [])
+    .map((q) => `<option value="${q}" ${q === (atual || '') ? 'selected' : ''}>${q ? q.replace(/</g, '&lt;') : 'Eu'}</option>`)
+    .join('') + '<option value="__outro">Outra pessoa…</option>';
+  const linhas = lista.map((d) => {
+    const comp = `${d.competencia.slice(5)}/${d.competencia.slice(0, 4)}`;
+    const atrasado = !d.pagoEm && d.pagarAte < hoje;
+    let situacao;
+    if (d.pagoEm) {
+      situacao = html`<span class="valor-bom">${html.cru(icone('check', 'ic ic-p'))}pago ${formatarData(d.pagoEm).slice(0, 5)}</span>
+        <button type="button" class="btn btn-icone btn-fantasma btn-pequeno" data-acao="desfazerDasPago" data-competencia="${d.competencia}" aria-label="Desfazer pagamento do DAS ${comp}">${html.cru(icone('desfazer'))}</button>`;
+    } else {
+      const pedir = d.pagoPor && !d.pedidoEm
+        ? html`<button type="button" class="btn btn-pequeno" data-acao="pedirDas" data-competencia="${d.competencia}">Já pedi</button>` : '';
+      const pedido = d.pagoPor && d.pedidoEm ? html`<small class="subtitulo">pedido ${formatarData(d.pedidoEm).slice(0, 5)}</small>` : '';
+      situacao = html`${html.cru(atrasado ? `<span class="valor-ruim">${icone('alerta', 'ic ic-p')}atrasado</span>` : '')}
+        ${html.cru(pedido)}${html.cru(pedir)}
+        <button type="button" class="btn btn-pequeno" data-acao="pagarDas" data-competencia="${d.competencia}">Paguei</button>`;
+    }
+    return html`<tr class="${atrasado ? 'linha-atrasada' : ''}">
+      <th scope="row">${comp}</th>
+      <td class="num">${formatarData(d.pagarAte).slice(0, 5)}${html.cru(d.pagarAte !== d.vencimento ? `<br><small class="subtitulo">vence ${formatarData(d.vencimento).slice(0, 5)}</small>` : '')}</td>
+      <td class="dir num">${formatarReais(d.valorCentavos)}</td>
+      <td><label class="visualmente-oculto" for="quem-${d.competencia}">Quem paga o DAS ${comp}</label>
+        <select id="quem-${d.competencia}" class="select-pequeno" data-ao-mudar="quemPagaDas" data-competencia="${d.competencia}">${html.cru(opcoes(d.pagoPor))}</select></td>
+      <td><div class="celula-acoes">${html.cru(situacao)}</div></td>
+    </tr>`;
+  });
+  const deTerceiros = lista.filter((d) => d.pagoPor && !d.pagoEm);
+  return html`
+    <section class="cartao" aria-labelledby="t-das">
+      <h2 id="t-das">DAS do MEI</h2>
+      <p class="subtitulo">Pague até a data indicada (último dia útil até o dia 20). Se outra pessoa der o dinheiro,
+        escolha quem em “Quem paga”: o DAS sai dos seus gastos e do seu saldo, mas o app lembra de pedir e de pagar.</p>
+      ${html.cru(deTerceiros.length ? html`<p class="nota-das">${html.cru(icone('info', 'ic ic-p'))}
+        ${deTerceiros.length === 1 ? '1 DAS pago' : `${deTerceiros.length} DAS pagos`} com dinheiro de outra pessoa
+        (${formatarReais(deTerceiros.reduce((s, d) => s + d.valorCentavos, 0))}).</p>` : '')}
+      <div class="tabela-rolagem"><table class="tabela tabela-das">
+        <thead><tr><th scope="col">Mês</th><th scope="col">Pagar até</th><th scope="col" class="dir">Valor</th><th scope="col">Quem paga</th><th scope="col"><span class="visualmente-oculto">Situação</span></th></tr></thead>
+        <tbody>${html.cru(linhas)}</tbody>
+      </table></div>
+      <p class="subtitulo" style="margin-top:8px">A guia oficial sai no app MEI ou no Portal do Empreendedor (PGMEI); confira lá o valor.</p>
+    </section>`;
+}
+
 // ---------- ações ----------
 
 function lerDinheiro(el, ctx) {
@@ -196,6 +248,25 @@ function lerDinheiro(el, ctx) {
 }
 
 export const acoes = {
+  pagarDas: (el, ev, ctx) => ctx.marcarDasPago(el.dataset.competencia),
+  pedirDas: (el, ev, ctx) => ctx.marcarDasPedido(el.dataset.competencia),
+  desfazerDasPago(el, ev, ctx) {
+    const comp = el.dataset.competencia;
+    ctx.atualizar((e) => { const p = { ...e.dasPagos }; delete p[comp]; e.dasPagos = p; }, { aviso: 'Pagamento desfeito.' });
+  },
+  quemPagaDas(el, ev, ctx) {
+    const comp = el.dataset.competencia;
+    let quem = el.value;
+    if (quem === '__outro') {
+      quem = (prompt('Quem vai dar o dinheiro deste DAS?') || '').trim();
+      if (!quem) { el.value = ctx.estado.dasTerceiros[comp]?.quem || ''; return; }
+    }
+    ctx.atualizar((e) => {
+      const t = { ...e.dasTerceiros };
+      if (quem) t[comp] = { quem, pedidoEm: t[comp]?.pedidoEm || null }; else delete t[comp];
+      e.dasTerceiros = t;
+    }, { aviso: quem ? `DAS ${comp.slice(5)}/${comp.slice(0, 4)}: dinheiro do ${quem}. Saiu dos seus gastos; o lembrete de pedir fica no Painel.` : 'Agora este DAS é pago por você.' });
+  },
   contaNome(el, ev, ctx) {
     const nome = el.value.trim() || 'Conta';
     ctx.atualizar((e) => { e.contas[Number(el.dataset.indice)].nome = nome; }, { aviso: 'Salvo.' });

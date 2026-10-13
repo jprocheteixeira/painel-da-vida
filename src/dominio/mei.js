@@ -3,6 +3,8 @@
 // (R$ 86,05 informado pelo usuário para 2026). Para não depender da regra de prorrogação, o LEMBRETE
 // usa o último dia útil até o vencimento (se o dia 20 cair num domingo, lembra na sexta).
 // Pagamentos ficam em `dasPagos` ({ competencia: data do pagamento }).
+// DAS pago com dinheiro de outra pessoa fica em `dasTerceiros` ({ competencia: { quem, pedidoEm } }):
+// continua lembrado, mas não sai dos gastos nem do saldo do usuário.
 
 import { mesDe, somarMeses, somarDias } from '../utils/datas.js';
 import { ehDiaUtil } from './calendario.js';
@@ -36,13 +38,21 @@ export function dataLembreteDas(vencimento, feriados) {
 
 /**
  * DAS com situação, da abertura até `ateMes`:
- * [{ competencia, vencimento, pagarAte, valorCentavos, pagoEm }]
+ * [{ competencia, vencimento, pagarAte, valorCentavos, pagoEm, pagoPor, pedidoEm }]
  */
 export function situacaoDas(estado, ateMes) {
   const pagos = estado.dasPagos || {};
+  const terceiros = estado.dasTerceiros || {};
   return dasDoPeriodo(estado.perfil.aberturaMei, ateMes, estado.mei).map((d) => ({
     ...d,
     pagarAte: dataLembreteDas(d.vencimento, estado.feriados),
     pagoEm: pagos[d.competencia] || null,
+    pagoPor: terceiros[d.competencia]?.quem || null,
+    pedidoEm: terceiros[d.competencia]?.pedidoEm || null,
   }));
+}
+
+/** true se o DAS da competência é pago com dinheiro de outra pessoa. */
+export function dasDeTerceiro(estado, competencia) {
+  return Boolean(estado.dasTerceiros?.[competencia]?.quem);
 }

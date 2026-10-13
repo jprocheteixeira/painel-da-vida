@@ -82,6 +82,12 @@ ctx.carregarExemplo = () => {
     && !confirm('Os dados de exemplo substituem os seus dados atuais. Continuar?')) return;
   ctx.substituirEstado(estadoDeExemplo(ctx.hoje), 'Dados de exemplo carregados.');
 };
+const rotuloComp = (comp) => `${comp.slice(5)}/${comp.slice(0, 4)}`;
+ctx.marcarDasPago = (comp) => ctx.atualizar((e) => { e.dasPagos = { ...e.dasPagos, [comp]: ctx.hoje }; },
+  { aviso: `DAS ${rotuloComp(comp)} marcado como pago.` });
+ctx.marcarDasPedido = (comp) => ctx.atualizar((e) => {
+  e.dasTerceiros = { ...e.dasTerceiros, [comp]: { ...e.dasTerceiros[comp], pedidoEm: ctx.hoje } };
+}, { aviso: 'Anotado: dinheiro pedido.' });
 ctx.apagarExemplo = () => ctx.substituirEstado(estadoInicial(), 'Dados de exemplo apagados.');
 ctx.apagarTudo = () => ctx.substituirEstado(estadoInicial(), 'Todos os dados foram apagados.');
 
@@ -211,6 +217,9 @@ let telaEstreita = window.innerWidth < 600;
 window.addEventListener('resize', () => {
   if ((window.innerWidth < 600) !== telaEstreita) { telaEstreita = !telaEstreita; render(); }
 });
+
+// pede ao navegador para não apagar os dados sozinho quando faltar espaço
+navigator.storage?.persist?.().catch(() => {});
 
 // app instalável e com abertura sem internet (não mexe nos dados, que ficam no localStorage)
 if ('serviceWorker' in navigator && location.protocol === 'https:') {

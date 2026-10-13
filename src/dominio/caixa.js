@@ -14,7 +14,7 @@
 import { mesDe, intervaloMeses, ultimoDiaDoMes } from '../utils/datas.js';
 import { somar } from '../utils/dinheiro.js';
 import { linhaDoTempo } from './prazos.js';
-import { dasDoPeriodo } from './mei.js';
+import { dasDoPeriodo, dasDeTerceiro } from './mei.js';
 import { ocorrenciasFixo, ocorrenciasParcelamento, gastoConhecidoNoMes, totalEstimativa } from './gastos.js';
 
 export const CAIXA_PADRAO = Object.freeze({
@@ -67,7 +67,8 @@ export function fluxos(estado, hoje) {
   const deMes = caixa.saldoEm ? mesDe(caixa.saldoEm) : mesDe(hoje);
   const ateMes = caixa.horizonte;
   const pagos = estado.dasPagos || {};
-  const das = dasDoPeriodo(estado.perfil.aberturaMei, ateMes, estado.mei).map((d) => ({
+  const das = dasDoPeriodo(estado.perfil.aberturaMei, ateMes, estado.mei)
+    .filter((d) => !dasDeTerceiro(estado, d.competencia)).map((d) => ({
     data: pagos[d.competencia] || d.vencimento, valorCentavos: -d.valorCentavos, descricao: `DAS ${d.competencia}`, origem: 'das',
   }));
   const fixos = estado.recorrencias.flatMap((r) => ocorrenciasRecorrencia(r, deMes, ateMes));

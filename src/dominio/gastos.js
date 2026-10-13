@@ -5,7 +5,7 @@
 
 import { mesDe, somarMeses, ultimoDiaDoMes, intervaloMeses } from '../utils/datas.js';
 import { somar } from '../utils/dinheiro.js';
-import { dasDoPeriodo } from './mei.js';
+import { dasDoPeriodo, dasDeTerceiro } from './mei.js';
 
 export const CATEGORIAS_PADRAO = Object.freeze([
   { id: 'mercado', nome: 'Mercado' },
@@ -127,6 +127,7 @@ export function gastosDoMes(estado, mes) {
     })));
   const pagos = estado.dasPagos || {};
   const das = dasDoPeriodo(estado.perfil?.aberturaMei, somarMeses(mes, 1), estado.mei)
+    .filter((d) => !dasDeTerceiro(estado, d.competencia)) // pago por outra pessoa: não é gasto do usuário
     .map((d) => ({ ...d, data: pagos[d.competencia] || d.vencimento }))
     .filter((d) => mesDe(d.data) === mes)
     .map((d) => ({

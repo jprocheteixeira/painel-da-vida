@@ -72,7 +72,27 @@ test('arquivo .ics com eventos de dia inteiro e dois avisos', () => {
 test('migração v3 → v4 cria a categoria de impostos antes de Outros', () => {
   const v3 = { versao: 3, categorias: [{ id: 'mercado', nome: 'Mercado' }, { id: 'outros', nome: 'Outros' }] };
   const d = migrar(v3);
-  assert.equal(d.versao, 4);
+  assert.equal(d.versao, 5);
   assert.deepEqual(d.categorias.map((c) => c.id), ['mercado', 'impostos', 'outros']);
   assert.deepEqual(d.dasPagos, {});
+});
+
+test('DAS pago pelo pai: some dos gastos e do saldo, mas lembra de pedir e de pagar', () => {
+  const e = cenario();
+  e.dasTerceiros = { '2026-10': { quem: 'Pai', pedidoEm: null } };
+  assert.equal(gastosDoMes(e, '2026-11').length, 0);
+  assert.equal(saldoNoFimDe(projecao(e, '2026-10-13'), '2026-11'), 0);
+  const t = tarefasDAS(e, '2026-11-02');
+  assert.deepEqual(t.filter((x) => x.competencia === '2026-10').map((x) => [x.id, x.data]), [
+    ['das-pedir:2026-10', '2026-11-12'], ['das:2026-10', '2026-11-19'],
+  ]);
+  assert.match(t[0].titulo, /Pedir ao Pai o dinheiro do DAS \(10\/2026\)/);
+  assert.match(t[1].titulo, /dinheiro do Pai/);
+  // atrasado para pedir: aparece hoje
+  assert.equal(tarefasDAS(e, '2026-11-15')[0].data, '2026-11-15');
+  // depois de pedir, fica só o de pagar
+  e.dasTerceiros['2026-10'].pedidoEm = '2026-11-10';
+  assert.deepEqual(tarefasDAS(e, '2026-11-11').filter((x) => x.competencia === '2026-10').map((x) => x.id), ['das:2026-10']);
+  // o DAS seguinte continua sendo do usuário
+  assert.equal(gastosDoMes(e, '2026-12').length, 1);
 });

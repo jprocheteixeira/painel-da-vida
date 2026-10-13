@@ -632,3 +632,9 @@ kbd { font-family: var(--mono); font-size: 0.78rem; padding: 1px 6px; border: 1p
 .nota-das { margin-top: 8px; font-size: 0.86rem; color: var(--texto-2); }
 .nota-das .ic { color: var(--positivo); }
 .cartao > h2 .btn { flex: none; }
+
+.tabela-das th[scope="row"] { font-size: 0.88rem; color: var(--texto); text-transform: none; }
+.tabela-das td, .tabela-das th { white-space: nowrap; }
+.celula-acoes { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.select-pequeno { min-height: 32px; padding: 4px 8px; font-size: 0.86rem; width: auto; }
+.linha-atrasada th, .linha-atrasada td { background: var(--perigo-fundo); }

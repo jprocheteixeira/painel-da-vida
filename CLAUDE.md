@@ -85,6 +85,14 @@ privado/        (fora do Git) meu-perfil.json
 - A ferramenta de pré-visualização desta sessão ainda lê o `.claude/launch.json` da pasta do HMI: para testar o Painel,
   pôr a configuração "painel-da-vida" lá temporariamente e tirar depois (o arquivo é local e ignorado pelo Git).
 
+- 2026-10-13: **DAS pago por outra pessoa** (`dasTerceiros`, schema v5): o 1º DAS (out/2026) será pago com dinheiro do pai.
+  Escolhido em Caixa → "DAS do MEI" → "Quem paga". Sai dos gastos e do saldo; o Painel lembra de pedir o dinheiro
+  7 dias antes do prazo ("Já pedi") e de pagar ("Paguei"). Tudo vai também para o .ics.
+- 2026-10-13: **Backup** lembrado no **último dia útil de cada mês** (junto com o boletim), escolha do usuário; aparece em
+  "Próximos 14 dias" e no .ics. O app pede `navigator.storage.persist()` para o navegador não limpar os dados sozinho.
+- 2026-10-13: Usuário sem gastos próprios até receber (~10/12); depois vai assumir gastos que hoje são da mãe.
+  Projeção recomendada até jun/2027 (último pagamento do contrato cai ~junho).
+
 ## Premissas a confirmar com o usuário/contador
 
 - Faturamento MEI conta pelo valor da NF (R$ 200/dia, incluindo deslocamento).
