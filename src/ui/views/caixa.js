@@ -28,7 +28,8 @@ export function render(ctx) {
   const menor = proj.reduce((a, b) => (b.saldoFinal < a.saldoFinal ? b : a), proj[0]);
   const abaixo = proj.filter((p) => p.abaixoDaReserva);
   const hojeSaldo = saldoAtual(estado, hoje);
-  const tom = (v) => (v < reserva ? 'kpi-ruim' : 'kpi-bom');
+  // sem saldo informado, a projeção parte de R$ 0: não pinta de bom/ruim para não dar falso alarme
+  const tom = (v) => (!estado.caixa.saldoEm ? '' : v < reserva ? 'kpi-ruim' : 'kpi-bom');
 
   return html`
     <div class="cabecalho-pagina"><div><h1>Fluxo de caixa</h1>
@@ -36,7 +37,7 @@ export function render(ctx) {
     ${html.cru(estado.meta.exemplo ? faixaExemplo() : '')}
     ${html.cru(!estado.caixa.saldoEm ? html`<div class="faixa faixa-info">${html.cru(icone('info'))}
       <div><strong>Informe quanto você tem hoje</strong>Preencha o saldo das contas abaixo para a projeção partir do valor real. Por enquanto ela parte de R$ 0,00.</div></div>` : '')}
-    ${html.cru(abaixo.length ? html`<div class="faixa faixa-alerta" role="alert">${html.cru(icone('alerta'))}
+    ${html.cru(abaixo.length && estado.caixa.saldoEm ? html`<div class="faixa faixa-alerta" role="alert">${html.cru(icone('alerta'))}
       <div><strong>Saldo abaixo da reserva mínima (${formatarReais(reserva)})</strong>
       Em ${abaixo.map((p) => nomeMes(p.mes, true)).join(', ')}. O motivo mais comum: o pagamento chega cerca de 2 meses depois do trabalho.</div></div>` : '')}
 

@@ -89,7 +89,7 @@ export function render(ctx) {
       <article class="kpi">
         <p class="kpi-rotulo">Trabalhado em ${rotuloCompetencia(mesAtual).split('/')[0].toLowerCase()}</p>
         <p class="kpi-valor">${formatarReais(atual?.valorCentavos ?? 0)}</p>
-        <p class="kpi-detalhe num">${atual?.diasTrabalhados ?? 0} dias · previsto ${formatarReais(atual?.valorPrevistoCentavos ?? 0)}</p>
+        <p class="kpi-detalhe num">${atual?.diasTrabalhados ?? 0} ${(atual?.diasTrabalhados ?? 0) === 1 ? 'dia' : 'dias'} · previsto ${formatarReais(atual?.valorPrevistoCentavos ?? 0)}</p>
       </article>
       <article class="kpi ${totalAReceber > 0 ? 'kpi-bom' : ''}">
         <p class="kpi-rotulo">A receber</p>
@@ -101,10 +101,10 @@ export function render(ctx) {
         <p class="kpi-valor">${formatarReais(gastosMes.total)}</p>
         <p class="kpi-detalhe">${gastoEstimado ? `de ${formatarReais(gastoEstimado)} estimados` : `contrato: ${formatarReais(recebidoTotal)} de ${formatarReais(previstoTotal)} recebidos`}</p>
       </a>
-      <a class="kpi kpi-link ${abaixoReserva ? 'kpi-ruim' : estado.caixa.saldoEm ? 'kpi-bom' : ''}" href="#/caixa">
+      <a class="kpi kpi-link ${!estado.caixa.saldoEm ? '' : abaixoReserva ? 'kpi-ruim' : 'kpi-bom'}" href="#/caixa">
         <p class="kpi-rotulo">Saldo hoje</p>
         <p class="kpi-valor">${formatarReais(saldoAtual(estado, hoje))}</p>
-        <p class="kpi-detalhe">${abaixoReserva ? `⚠ abaixo da reserva em ${abaixoReserva}` : 'ver projeção →'}</p>
+        <p class="kpi-detalhe">${!estado.caixa.saldoEm ? 'informe seu saldo em Caixa →' : abaixoReserva ? `⚠ abaixo da reserva em ${abaixoReserva}` : 'ver projeção →'}</p>
       </a>
     </section>
 

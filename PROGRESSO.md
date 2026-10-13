@@ -26,5 +26,5 @@
 - F3 concluída (schema v3). 40/40 testes. Conversa movida para a pasta painel-da-vida.
 - Estimativa mensal com campo de adicionar e sugestões; DAS automático em Gastos + lembrete no Painel + exportar
   prazos para a agenda (.ics). Schema v4. 45/45 testes.
-- Contrato começa em 13/10 (terça, já trabalhado), ter–qui; perfil privado atualizado (78 dias = R$ 15.600).
+- Contrato começa em 13/10 (terça, já trabalhado), ter–qui; perfil privado atualizado (77 dias = R$ 15.400: ganha 13/10, perde 13/04/2027).
 - F2 concluída: tela Caixa, gráficos SVG próprios com dica, schema v2 (contas, recorrencias, caixa, mei). 33/33 testes.
