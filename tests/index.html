@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Testes · Painel da Vida</title>
+<!-- Roda os mesmos arquivos do "node --test" no navegador, trocando node:test e node:assert. -->
+<script type="importmap">
+{ "imports": {
+  "node:test": "./navegador/node-test.js",
+  "node:assert/strict": "./navegador/assert.js"
+} }
+</script>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 24px; background: #f7f6f2; color: #1d2321; }
+  .ok { color: #1a7f4b; } .falha { color: #b42318; white-space: pre-wrap; }
+  #resumo { font-weight: 700; font-size: 1.2em; }
+</style>
+</head>
+<body>
+<h1>Testes de domínio</h1>
+<p id="resumo">Rodando…</p>
+<ul id="lista"></ul>
+<script type="module">
+  import { testes } from './navegador/node-test.js';
+  const arquivos = ['utils', 'calendario', 'contrato', 'medicao', 'storage'];
+  const lista = document.getElementById('lista');
+  let falhas = 0;
+  for (const a of arquivos) {
+    const antes = testes.length;
+    await import(`./${a}.test.js`);
+    for (const t of testes.slice(antes)) {
+      const li = document.createElement('li');
+      try { await t.fn(); li.className = 'ok'; li.textContent = `✓ ${a}: ${t.nome}`; }
+      catch (e) { falhas++; li.className = 'falha'; li.textContent = `✗ ${a}: ${t.nome}\n${e.message}`; }
+      lista.append(li);
+    }
+  }
+  const r = document.getElementById('resumo');
+  r.textContent = `${testes.length - falhas}/${testes.length} testes passaram`;
+  r.className = falhas ? 'falha' : 'ok';
+  document.title = falhas ? `✗ ${falhas} falhas` : '✓ testes ok';
+</script>
+</body>
+</html>

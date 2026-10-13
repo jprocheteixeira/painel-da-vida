@@ -1,0 +1,9 @@
+# Dados pessoais nunca vão para o Git
+privado/
+*backup*.json
+*.local.json
+.env
+.claude/
+node_modules/
+.DS_Store
+Thumbs.db

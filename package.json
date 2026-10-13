@@ -1,0 +1,9 @@
+{
+  "name": "painel-da-vida",
+  "private": true,
+  "type": "module",
+  "description": "Dinheiro, trabalho PJ e prazos. App web local, sem backend.",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
