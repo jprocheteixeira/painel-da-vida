@@ -8,9 +8,10 @@ import { hojeISO } from '../utils/datas.js';
 import { baixarArquivo } from './util.js';
 import * as painel from './views/painel.js';
 import * as pj from './views/pj.js';
+import * as caixa from './views/caixa.js';
 import * as ajustes from './views/ajustes.js';
 
-const VIEWS = { painel, pj, ajustes };
+const VIEWS = { painel, pj, caixa, ajustes };
 const main = document.getElementById('conteudo');
 const toast = document.getElementById('aviso');
 
@@ -168,6 +169,33 @@ document.addEventListener('visibilitychange', () => {
     diaRenderizado = ctx.hoje;
     render();
   }
+});
+
+// ---------- dicas dos gráficos (mouse e toque) ----------
+
+const dica = document.createElement('div');
+dica.className = 'dica';
+dica.setAttribute('role', 'tooltip');
+document.body.append(dica);
+function mostrarDica(alvo, x, y) {
+  dica.textContent = alvo.dataset.dica;
+  dica.classList.add('visivel');
+  const r = dica.getBoundingClientRect();
+  const left = Math.min(Math.max(8, x - r.width / 2), window.innerWidth - r.width - 8);
+  dica.style.left = `${left}px`;
+  dica.style.top = `${Math.max(8, y - r.height - 12)}px`;
+}
+document.addEventListener('pointermove', (ev) => {
+  const alvo = ev.target.closest?.('[data-dica]');
+  if (alvo) mostrarDica(alvo, ev.clientX, ev.clientY);
+  else dica.classList.remove('visivel');
+});
+document.addEventListener('scroll', () => dica.classList.remove('visivel'), { passive: true });
+
+// os gráficos mudam de largura lógica no celular: redesenha ao cruzar o limite
+let telaEstreita = window.innerWidth < 600;
+window.addEventListener('resize', () => {
+  if ((window.innerWidth < 600) !== telaEstreita) { telaEstreita = !telaEstreita; render(); }
 });
 
 window.__painelIniciado = true;

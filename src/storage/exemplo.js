@@ -21,6 +21,13 @@ export function estadoDeExemplo(hoje) {
   const ontem = somarDias(hoje, -1);
   const sugeridos = intervaloDias(inicio, ontem).filter((d) => ehDiaSugerido(d, estado.contrato, estado.feriados));
   sugeridos.forEach((d, i) => { estado.marcas[d] = i === 4 ? DIA.FOLGA : DIA.TRABALHADO; });
+  estado.contas[0].saldoCentavos = 42000;
+  estado.contas[1].saldoCentavos = 185050;
+  estado.caixa.saldoEm = hoje;
+  estado.recorrencias = [
+    { id: 'r1', descricao: 'Aluguel (exemplo)', valorCentavos: 65000, dia: 10, inicio: hoje, fim: null, categoria: null },
+    { id: 'r2', descricao: 'Celular (exemplo)', valorCentavos: 4990, dia: 15, inicio: hoje, fim: null, categoria: null },
+  ];
   const mesAnterior = mesDe(inicio);
   estado.medicoes[mesAnterior] = {
     mes: mesAnterior,

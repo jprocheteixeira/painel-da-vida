@@ -8,6 +8,7 @@ import { competenciaDoDia } from '../../dominio/contrato.js';
 import { indiceEstado, ESTADOS } from '../../dominio/medicao.js';
 import { tarefasPJ, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
 import { precisaLembreteBackup } from '../../storage/backup.js';
+import { saldoAtual, projecao } from '../../dominio/caixa.js';
 import { html, icone } from '../util.js';
 import { faixaExemplo } from './pj.js';
 
@@ -56,6 +57,8 @@ export function render(ctx) {
   const previstoTotal = somar(linhas.map((l) => (l.medicao.estado === 'trabalhando' ? l.valorPrevistoCentavos : l.valorCentavos)));
 
   const prazos = proximosPrazos(tarefasPJ(dados, hoje), hoje, 14);
+  const abaixoReserva = projecao(estado, hoje).filter((p) => p.abaixoDaReserva).length
+    ? `${projecao(estado, hoje).filter((p) => p.abaixoDaReserva).length} mês(es)` : '';
 
   return html`
     <div class="cabecalho-pagina">
@@ -67,7 +70,7 @@ export function render(ctx) {
     ${html.cru(estado.meta.exemplo ? faixaExemplo() : '')}
     ${html.cru(lembreteBackup(ctx))}
 
-    <section class="bento" aria-label="Resumo">
+    <section class="bento bento-5" aria-label="Resumo">
       <article class="kpi kpi-destaque">
         <p class="kpi-rotulo">Próximo pagamento</p>
         ${html.cru(proximoPagamento ? html`
@@ -92,6 +95,11 @@ export function render(ctx) {
         <p class="kpi-valor">${formatarReais(recebidoTotal)}</p>
         <p class="kpi-detalhe">recebido de ${formatarReais(previstoTotal)} previstos</p>
       </article>
+      <a class="kpi kpi-link" href="#/caixa">
+        <p class="kpi-rotulo">Saldo hoje</p>
+        <p class="kpi-valor">${formatarReais(saldoAtual(estado, hoje))}</p>
+        <p class="kpi-detalhe">${abaixoReserva ? `⚠ abaixo da reserva em ${abaixoReserva}` : 'ver projeção →'}</p>
+      </a>
     </section>
 
     <div class="grade grade-2">

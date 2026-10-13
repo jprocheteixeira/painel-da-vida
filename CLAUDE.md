@@ -31,9 +31,9 @@ porque este repositório é público. Ler esse arquivo no início da sessão, se
 ```
 index.html · css/estilo.css · package.json
 src/utils/      datas.js, dinheiro.js
-src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js
+src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js, caixa.js, mei.js
 src/storage/    migracoes.js, repositorio.js, backup.js, exemplo.js (seed fictício)
-src/ui/         app.js (rotas, eventos, salvamento), util.js, views/{painel,pj,ajustes}.js
+src/ui/         app.js (rotas, eventos, salvamento, dicas), util.js, graficos.js, views/{painel,pj,caixa,ajustes}.js
 tests/          *.test.js (node --test) + index.html e navegador/ (rodar no navegador)
 privado/        (fora do Git) meu-perfil.json
 ```
@@ -55,6 +55,14 @@ privado/        (fora do Git) meu-perfil.json
   tira um dia em relação a uma conta simples de semanas × dias).
 - 2026-10-13: Visual moderno pedido pelo usuário: grade bento, destaque com gradiente, cores com `oklch`/`color-mix`,
   cabeçalho translúcido, abas embaixo no celular, tema claro/escuro/automático.
+
+- 2026-10-13: **Caixa (F2):** saldo informado vale no fim do dia `caixa.saldoEm` (editar um saldo atualiza a data para hoje);
+  só entram fluxos depois dela. Recebimento entra na data de pagamento (real ou prevista); competência em andamento usa
+  os dias previstos. DAS e gastos fixos contam como pagos no vencimento. Reserva mínima padrão R$ 1.000 e horizonte
+  mar/2027, editáveis. Simulador muda prazo (15/30/45) e dias/semana (2 = primeiros 2 dias do contrato) só para dias futuros.
+- 2026-10-13: **Gráficos:** SVG próprio (`src/ui/graficos.js`), cores da paleta de referência validada (slot 1 azul =
+  competência, slot 2 laranja = caixa), saldo na cor de destaque, abaixo da reserva = vermelho + ícone; tabela sempre
+  disponível; largura lógica menor no celular.
 
 ## Premissas a confirmar com o usuário/contador
 
