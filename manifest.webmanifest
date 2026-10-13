@@ -1,0 +1,22 @@
+{
+  "name": "Painel da Vida",
+  "short_name": "Painel da Vida",
+  "description": "Dinheiro, trabalho PJ e prazos. Os dados ficam só neste aparelho.",
+  "lang": "pt-BR",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121011",
+  "theme_color": "#121011",
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Lançar gasto", "url": "./#/gastos", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Trabalho PJ", "url": "./#/pj", "icons": [{ "src": "img/icone-192.png", "sizes": "192x192" }] }
+  ]
+}

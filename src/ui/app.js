@@ -212,6 +212,11 @@ window.addEventListener('resize', () => {
   if ((window.innerWidth < 600) !== telaEstreita) { telaEstreita = !telaEstreita; render(); }
 });
 
+// app instalável e com abertura sem internet (não mexe nos dados, que ficam no localStorage)
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* segue funcionando sem ele */ });
+}
+
 window.__painelIniciado = true;
 render();
 if (inicial.aviso) avisar(inicial.aviso, true);
