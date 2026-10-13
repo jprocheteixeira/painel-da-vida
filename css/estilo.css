@@ -8,23 +8,25 @@
   --texto: #1b1415;
   --texto-2: #5e4f51;
   --texto-3: #6f6264;
-  --acento: #b83a42;
-  --acento-forte: #962a32;
-  --acento-suave: #f9e1e2;
+  --acento: #2a2223;
+  --acento-forte: #120d0e;
+  --acento-suave: #ece4e3;
   --sobre-acento: #ffffff;
+  --brilho-fundo: rgb(184 58 66 / 11%);
   --marca-fundo: #1b1415;
   --marca-traco: #e0545c;
-  --positivo: #2f7d4f;
+  --positivo: #1f7a45;
+  --positivo-fundo: #e2f3e8;
   --alerta: #8a5a00;
   --alerta-fundo: #fff3d6;
   --alerta-borda: #e8c26a;
   --perigo: #c4231c;
   --perigo-fundo: #fde6e3;
-  --info: #3e5f8f;
-  --info-fundo: #e9eef6;
+  --info: #5e4f51;
+  --info-fundo: #efe7e6;
   --foco: #2563eb;
   --serie-1: #3e649e;
-  --serie-2: #d0505a;
+  --serie-2: #c08a1e;
   --sombra: 0 1px 2px rgb(40 15 18 / 6%), 0 4px 16px rgb(40 15 18 / 5%);
   --raio: 14px;
   --raio-p: 9px;
@@ -33,8 +35,8 @@
   color-scheme: light;
 }
 
-/* Tema rubro-negro: vermelho pastel/carmim + preto. O vermelho de alerta (--perigo) é mais vivo
-   e sempre vem com ícone e texto, para não se confundir com a cor da marca. */
+/* Fundo rosado (claro) / preto (escuro) com brilho vermelho; cartões e botões neutros (preto/grafite).
+   Cor só com significado: vermelho = ruim (--perigo), verde = bom (--positivo). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="claro"]) {
     --fundo: #121011;
@@ -44,23 +46,25 @@
     --texto: #f4eeee;
     --texto-2: #c4b7b8;
     --texto-3: #9d8f90;
-    --acento: #f0868c;
-    --acento-forte: #f6a6aa;
-    --acento-suave: #3b1e21;
-    --sobre-acento: #1a0c0d;
+    --acento: #ece4e4;
+    --acento-forte: #ffffff;
+    --acento-suave: #2e2627;
+    --sobre-acento: #161213;
+    --brilho-fundo: rgb(240 134 140 / 9%);
     --marca-fundo: #2a1f21;
     --marca-traco: #f0868c;
-    --positivo: #6fcf97;
+    --positivo: #5fcf8a;
+    --positivo-fundo: #16301f;
     --alerta: #f2c063;
     --alerta-fundo: #33290f;
     --alerta-borda: #7a5d1d;
     --perigo: #ff6a5c;
     --perigo-fundo: #3a1715;
-    --info: #9db8e6;
-    --info-fundo: #1b2333;
+    --info: #c4b7b8;
+    --info-fundo: #262020;
     --foco: #8ab4ff;
     --serie-1: #5f86c4;
-    --serie-2: #e0545c;
+    --serie-2: #ad7a1a;
     --sombra: 0 1px 2px rgb(0 0 0 / 35%);
     color-scheme: dark;
   }
@@ -74,23 +78,25 @@
   --texto: #f4eeee;
   --texto-2: #c4b7b8;
   --texto-3: #9d8f90;
-  --acento: #f0868c;
-  --acento-forte: #f6a6aa;
-  --acento-suave: #3b1e21;
-  --sobre-acento: #1a0c0d;
+  --acento: #ece4e4;
+  --acento-forte: #ffffff;
+  --acento-suave: #2e2627;
+  --sobre-acento: #161213;
+  --brilho-fundo: rgb(240 134 140 / 9%);
   --marca-fundo: #2a1f21;
   --marca-traco: #f0868c;
-  --positivo: #6fcf97;
+  --positivo: #5fcf8a;
+  --positivo-fundo: #16301f;
   --alerta: #f2c063;
   --alerta-fundo: #33290f;
   --alerta-borda: #7a5d1d;
   --perigo: #ff6a5c;
   --perigo-fundo: #3a1715;
-  --info: #9db8e6;
-  --info-fundo: #1b2333;
+  --info: #c4b7b8;
+  --info-fundo: #262020;
   --foco: #8ab4ff;
   --serie-1: #5f86c4;
-  --serie-2: #e0545c;
+  --serie-2: #ad7a1a;
   --sombra: 0 1px 2px rgb(0 0 0 / 35%);
   color-scheme: dark;
 }
@@ -298,8 +304,8 @@ input[aria-invalid="true"] { border-color: var(--perigo); }
   width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--borda); display: grid; place-items: center;
   font-size: 0.75rem; font-weight: 700; color: var(--texto-3); background: var(--superficie);
 }
-.etapa--feita .etapa-marca { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); }
-.etapa--feita::before, .etapa--atual::before { background: var(--acento); }
+.etapa--feita .etapa-marca { background: var(--positivo); border-color: var(--positivo); color: #fff; }
+.etapa--feita::before, .etapa--atual::before { background: var(--positivo); }
 .etapa--atual .etapa-marca { border-color: var(--acento); color: var(--acento); box-shadow: 0 0 0 4px var(--acento-suave); }
 .etapa--atual .etapa-nome { font-weight: 700; }
 .etapa-nome { font-size: 0.93rem; }
@@ -319,7 +325,7 @@ input[aria-invalid="true"] { border-color: var(--perigo); }
 .datas dd { margin: 0; text-align: right; font-weight: 600; }
 .datas dd small { display: block; font-weight: 500; color: var(--texto-3); font-size: 0.78rem; }
 .selo { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; vertical-align: 1px; margin-left: 4px; }
-.selo-real { background: var(--acento-suave); color: var(--acento-forte); }
+.selo-real { background: var(--positivo-fundo); color: var(--positivo); }
 .selo-prev { background: var(--superficie-2); color: var(--texto-2); }
 .selo-atraso { background: var(--perigo-fundo); color: var(--perigo); }
 
@@ -348,7 +354,7 @@ input[aria-invalid="true"] { border-color: var(--perigo); }
 .prazo--atrasado { border-left-color: var(--perigo); }
 .prazo--hoje { border-left-color: var(--alerta); }
 .prazo--proximo { border-left-color: var(--alerta-borda); }
-.prazo--normal { border-left-color: var(--acento); }
+.prazo--normal { border-left-color: var(--texto-3); }
 
 .vazio { color: var(--texto-3); font-size: 0.92rem; padding: 6px 0; }
 
@@ -361,12 +367,12 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 .tabela a { font-weight: 600; text-decoration: none; }
 .tabela tr.atual td { background: var(--acento-suave); }
 .estado-chip { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--superficie-2); color: var(--texto-2); white-space: nowrap; }
-.estado-chip.pago { background: var(--acento-suave); color: var(--acento-forte); }
+.estado-chip.pago { background: var(--positivo-fundo); color: var(--positivo); }
 
 /* linha do tempo trabalhado → recebido */
 .trilha { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 6px; }
 .trilha div { height: 6px; border-radius: 3px; background: var(--superficie-2); }
-.trilha div.feito { background: var(--acento); }
+.trilha div.feito { background: var(--positivo); }
 
 /* ---------- feriados ---------- */
 
@@ -412,7 +418,7 @@ details.secao[open] > summary { margin-bottom: 12px; }
 
 body {
   background:
-    radial-gradient(1200px 500px at 100% -10%, color-mix(in oklch, var(--acento) 10%, transparent), transparent 70%),
+    radial-gradient(1200px 500px at 100% -10%, var(--brilho-fundo), transparent 70%),
     var(--fundo);
   background-attachment: fixed;
   letter-spacing: -0.003em;
@@ -472,10 +478,10 @@ h1 { font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem); font-weight: 750; letter-s
 .kpi-valor { font-size: clamp(1.25rem, 1rem + 1vw, 1.7rem); letter-spacing: -0.03em; }
 .kpi-destaque {
   background:
-    radial-gradient(120% 150% at 100% 0%, rgb(224 84 92 / 55%), transparent 62%),
-    repeating-linear-gradient(180deg, rgb(255 255 255 / 0%) 0 14px, rgb(255 255 255 / 2.5%) 14px 28px),
-    linear-gradient(135deg, #1b1415 0%, #2a1518 55%, #4a1a20 100%);
-  color: #fbf2f2; border: 0;
+    radial-gradient(120% 150% at 100% 0%, rgb(255 255 255 / 9%), transparent 60%),
+    repeating-linear-gradient(180deg, rgb(255 255 255 / 0%) 0 14px, rgb(255 255 255 / 2.2%) 14px 28px),
+    linear-gradient(135deg, #1b1415 0%, #2a2324 100%);
+  color: #fbf6f6; border: 1px solid rgb(255 255 255 / 8%);
 }
 .kpi-destaque .kpi-rotulo, .kpi-destaque .kpi-detalhe { color: rgb(251 242 242 / 80%); }
 .kpi-destaque .kpi-valor { font-size: clamp(1.8rem, 1.3rem + 2vw, 2.6rem); }
@@ -511,7 +517,7 @@ h1 { font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem); font-weight: 750; letter-s
 .g-alvo:hover + * , .g-alvo:hover { fill: color-mix(in oklch, var(--texto) 5%, transparent); }
 .g-linha { fill: none; stroke: var(--texto); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 .g-area { fill: color-mix(in oklch, var(--texto) 7%, transparent); }
-.g-ponto { fill: var(--texto); stroke: var(--superficie); stroke-width: 2; }
+.g-ponto { fill: var(--positivo); stroke: var(--superficie); stroke-width: 2; }
 .g-ponto-alerta { fill: var(--perigo); }
 .g-limite { stroke: var(--perigo); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .7; }
 .g-limite-rotulo { fill: var(--perigo); font-weight: 600; }
@@ -529,6 +535,8 @@ h1 { font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem); font-weight: 750; letter-s
 .tabela-sim td small { display: block; font-size: 0.74rem; font-weight: 600; }
 .tabela-sim th[scope="row"] { font-size: 0.85rem; color: var(--texto); text-transform: none; }
 .dif-mais { color: var(--positivo); }
+.valor-bom { color: var(--positivo); }
+.valor-ruim { color: var(--perigo); }
 .dif-menos { color: var(--perigo); }
 .dif-zero { color: var(--texto-3); }
 .celula-atual { background: var(--acento-suave); border-radius: 8px; }
@@ -545,3 +553,8 @@ input[type="month"] { width: 100%; min-height: 40px; padding: 8px 11px; border: 
 a.kpi-link { color: inherit; text-decoration: none; }
 a.kpi-link:hover { border-color: var(--acento); }
 @media (min-width: 900px) { .bento-5 { grid-template-columns: 1.6fr repeat(4, 1fr); } }
+
+/* KPI com significado: borda e valor coloridos só quando é bom ou ruim */
+.kpi.kpi-bom .kpi-valor { color: var(--positivo); }
+.kpi.kpi-ruim { border-color: color-mix(in oklch, var(--perigo) 45%, var(--borda)); }
+.kpi.kpi-ruim .kpi-valor { color: var(--perigo); }

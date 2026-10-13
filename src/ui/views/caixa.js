@@ -26,6 +26,8 @@ export function render(ctx) {
   const virada = mesVirada(hoje, estado.caixa.horizonte);
   const menor = proj.reduce((a, b) => (b.saldoFinal < a.saldoFinal ? b : a), proj[0]);
   const abaixo = proj.filter((p) => p.abaixoDaReserva);
+  const hojeSaldo = saldoAtual(estado, hoje);
+  const tom = (v) => (v < reserva ? 'kpi-ruim' : 'kpi-bom');
 
   return html`
     <div class="cabecalho-pagina"><div><h1>Fluxo de caixa</h1>
@@ -43,17 +45,17 @@ export function render(ctx) {
         <p class="kpi-valor">${formatarReais(saldoNoFimDe(proj, virada) ?? 0)}</p>
         <p class="kpi-detalhe">projetado para o fim de ${nomeMes(virada)}</p>
       </article>
-      <article class="kpi">
+      <article class="kpi ${estado.caixa.saldoEm ? tom(hojeSaldo) : ''}">
         <p class="kpi-rotulo">Saldo hoje</p>
-        <p class="kpi-valor">${formatarReais(saldoAtual(estado, hoje))}</p>
+        <p class="kpi-valor">${formatarReais(hojeSaldo)}</p>
         <p class="kpi-detalhe">${estado.caixa.saldoEm ? `informado em ${formatarData(estado.caixa.saldoEm)}` : 'não informado'}</p>
       </article>
-      <article class="kpi">
+      <article class="kpi ${menor ? tom(menor.saldoFinal) : ''}">
         <p class="kpi-rotulo">Menor saldo previsto</p>
         <p class="kpi-valor">${formatarReais(menor?.saldoFinal ?? 0)}</p>
         <p class="kpi-detalhe">${menor ? `fim de ${nomeMes(menor.mes)}` : ''}</p>
       </article>
-      <article class="kpi">
+      <article class="kpi ${proj.length ? tom(proj.at(-1).saldoFinal) : ''}">
         <p class="kpi-rotulo">Fim da projeção</p>
         <p class="kpi-valor">${formatarReais(proj.at(-1)?.saldoFinal ?? 0)}</p>
         <p class="kpi-detalhe">${nomeMes(estado.caixa.horizonte)}</p>

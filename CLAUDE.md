@@ -53,10 +53,12 @@ privado/        (fora do Git) meu-perfil.json
 - 2026-10-13: Competência = mês inteiro (dia de corte 0); dia de corte N é suportado (do dia N+1 ao dia N).
 - 2026-10-13: A estimativa do contrato usa os dias sugeridos já sem feriados (um feriado municipal numa quarta
   tira um dia em relação a uma conta simples de semanas × dias).
-- 2026-10-13: **Tema rubro-negro pastel** (pedido do usuário, torcedor do Athletico): carmim `#b83a42`/rosa pastel
-  `#f9e1e2` no claro, vermelho pastel `#f0868c` sobre preto no escuro; destaque em gradiente preto→vinho com listras sutis.
-  O verde foi rejeitado. Alerta (`--perigo`) é um vermelho mais vivo e sempre vem com ícone + texto.
-  Séries dos gráficos validadas com o validador de paleta: azul-aço `#3e649e`/`#5f86c4` e vermelho `#d0505a`/`#e0545c`.
+- 2026-10-13: **Cores (decisão final do usuário):** fundo rosado `#f8f4f3` com brilho vermelho no claro e preto `#121011`
+  no escuro (o usuário gostou e quer manter); cartões, botões e destaque **neutros** (preto/grafite).
+  **Cor só com significado: vermelho = ruim (`--perigo`), verde = bom (`--positivo`)** — saldo abaixo/acima da reserva,
+  prazo atrasado, etapas concluídas, pago. Verde nunca como cor de marca (é a cor do rival). Logo preto com traço vermelho.
+  Séries dos gráficos (neutras, validadas no validador de paleta): azul-aço `#3e649e`/`#5f86c4` = trabalhado e
+  dourado `#c08a1e`/`#ad7a1a` = entra na conta. Pontos do saldo: verde acima da reserva, vermelho abaixo.
 - 2026-10-13: Visual moderno pedido pelo usuário: grade bento, destaque com gradiente, cores com `oklch`/`color-mix`,
   cabeçalho translúcido, abas embaixo no celular, tema claro/escuro/automático.
 
@@ -65,7 +67,7 @@ privado/        (fora do Git) meu-perfil.json
   os dias previstos. DAS e gastos fixos contam como pagos no vencimento. Reserva mínima padrão R$ 1.000 e horizonte
   mar/2027, editáveis. Simulador muda prazo (15/30/45) e dias/semana (2 = primeiros 2 dias do contrato) só para dias futuros.
 - 2026-10-13: **Gráficos:** SVG próprio (`src/ui/graficos.js`), cores validadas (azul-aço =
-  competência, vermelho = caixa), linha do saldo em preto/branco, abaixo da reserva = vermelho + ícone; tabela sempre
+  competência, dourado = caixa), linha do saldo em preto/branco, abaixo da reserva = vermelho + ícone; tabela sempre
   disponível; largura lógica menor no celular.
 
 ## Premissas a confirmar com o usuário/contador

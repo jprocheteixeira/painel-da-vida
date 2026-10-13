@@ -85,7 +85,7 @@ export function render(ctx) {
         <p class="kpi-valor">${formatarReais(atual?.valorCentavos ?? 0)}</p>
         <p class="kpi-detalhe num">${atual?.diasTrabalhados ?? 0} dias · previsto ${formatarReais(atual?.valorPrevistoCentavos ?? 0)}</p>
       </article>
-      <article class="kpi">
+      <article class="kpi ${totalAReceber > 0 ? 'kpi-bom' : ''}">
         <p class="kpi-rotulo">A receber</p>
         <p class="kpi-valor">${formatarReais(totalAReceber)}</p>
         <p class="kpi-detalhe">aprovado ou com NF emitida</p>
@@ -95,7 +95,7 @@ export function render(ctx) {
         <p class="kpi-valor">${formatarReais(recebidoTotal)}</p>
         <p class="kpi-detalhe">recebido de ${formatarReais(previstoTotal)} previstos</p>
       </article>
-      <a class="kpi kpi-link" href="#/caixa">
+      <a class="kpi kpi-link ${abaixoReserva ? 'kpi-ruim' : estado.caixa.saldoEm ? 'kpi-bom' : ''}" href="#/caixa">
         <p class="kpi-rotulo">Saldo hoje</p>
         <p class="kpi-valor">${formatarReais(saldoAtual(estado, hoje))}</p>
         <p class="kpi-detalhe">${abaixoReserva ? `⚠ abaixo da reserva em ${abaixoReserva}` : 'ver projeção →'}</p>
