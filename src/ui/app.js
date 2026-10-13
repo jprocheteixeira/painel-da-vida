@@ -9,9 +9,10 @@ import { baixarArquivo } from './util.js';
 import * as painel from './views/painel.js';
 import * as pj from './views/pj.js';
 import * as caixa from './views/caixa.js';
+import * as gastos from './views/gastos.js';
 import * as ajustes from './views/ajustes.js';
 
-const VIEWS = { painel, pj, caixa, ajustes };
+const VIEWS = { painel, pj, caixa, gastos, ajustes };
 const main = document.getElementById('conteudo');
 const toast = document.getElementById('aviso');
 
@@ -191,6 +192,19 @@ document.addEventListener('pointermove', (ev) => {
   else dica.classList.remove('visivel');
 });
 document.addEventListener('scroll', () => dica.classList.remove('visivel'), { passive: true });
+
+// atalho: tecla N abre o lançamento de gasto (fora de campos de texto)
+document.addEventListener('keydown', (ev) => {
+  if (ev.key.toLowerCase() !== 'n' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (ev.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  ev.preventDefault();
+  if (ctx.rota.nome !== 'gastos') location.hash = '#/gastos';
+  setTimeout(() => {
+    const campo = document.getElementById('gasto-valor');
+    campo?.scrollIntoView({ block: 'center' });
+    campo?.focus();
+  }, 0);
+});
 
 // os gráficos mudam de largura lógica no celular: redesenha ao cruzar o limite
 let telaEstreita = window.innerWidth < 600;

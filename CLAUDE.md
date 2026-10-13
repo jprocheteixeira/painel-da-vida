@@ -31,9 +31,9 @@ porque este repositório é público. Ler esse arquivo no início da sessão, se
 ```
 index.html · css/estilo.css · package.json
 src/utils/      datas.js, dinheiro.js
-src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js, caixa.js, mei.js
+src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js
 src/storage/    migracoes.js, repositorio.js, backup.js, exemplo.js (seed fictício)
-src/ui/         app.js (rotas, eventos, salvamento, dicas), util.js, graficos.js, views/{painel,pj,caixa,ajustes}.js
+src/ui/         app.js (rotas, eventos, salvamento, dicas), util.js, graficos.js, views/{painel,pj,caixa,gastos,ajustes}.js
 tests/          *.test.js (node --test) + index.html e navegador/ (rodar no navegador)
 privado/        (fora do Git) meu-perfil.json
 ```
@@ -69,6 +69,13 @@ privado/        (fora do Git) meu-perfil.json
 - 2026-10-13: **Gráficos:** SVG próprio (`src/ui/graficos.js`), cores validadas (azul-aço =
   competência, dourado = caixa), linha do saldo em preto/branco, abaixo da reserva = vermelho + ícone; tabela sempre
   disponível; largura lógica menor no celular.
+
+- 2026-10-13: **Gastos (F3):** valores de gasto guardados positivos. Fixos (`recorrencias`) e parcelados (`parcelamentos`)
+  não são gravados mês a mês: as ocorrências são calculadas da regra. Categoria apagada → gastos vão para "Outros".
+  **Estimativa mensal** (`estimativas`, itens prontos que o usuário preenche ou exclui) é um PISO do mês na projeção:
+  entra só a diferença entre a estimativa e o que já se conhece do mês (lançados + fixos + parcelas). Atalho N = lançar gasto.
+  Resumo por categoria em barras horizontais (sem pizza: 10 categorias passariam do limite de cores distinguíveis e
+  vermelho/verde são reservados para ruim/bom); barra vermelha só quando passa do orçamento.
 
 ## Premissas a confirmar com o usuário/contador
 

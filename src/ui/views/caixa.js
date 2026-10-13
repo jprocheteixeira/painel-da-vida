@@ -5,6 +5,7 @@ import { formatarReais, lerReais, centavosParaCampo } from '../../utils/dinheiro
 import {
   projecao, saldoAtual, competenciaVsCaixa, gradeSimulador, saldoNoFimDe,
 } from '../../dominio/caixa.js';
+import { totalEstimativa } from '../../dominio/gastos.js';
 import { html, icone } from '../util.js';
 import { barrasAgrupadas, linhaSaldo } from '../graficos.js';
 import { faixaExemplo } from './pj.js';
@@ -64,10 +65,9 @@ export function render(ctx) {
 
     <div class="grade grade-2">
       ${html.cru(cartaoCompetenciaCaixa(estado, hoje))}
-      ${html.cru(cartaoProjecao(proj, reserva))}
+      ${html.cru(cartaoProjecao(estado, proj, reserva))}
       ${html.cru(cartaoSimulador(estado, hoje, virada))}
       ${html.cru(cartaoContas(estado))}
-      ${html.cru(cartaoFixos(estado))}
     </div>`;
 }
 
@@ -108,7 +108,7 @@ function cartaoCompetenciaCaixa(estado, hoje) {
     </section>`;
 }
 
-function cartaoProjecao(proj, reserva) {
+function cartaoProjecao(estado, proj, reserva) {
   const grafico = linhaSaldo({
     titulo: 'Saldo projetado no fim de cada mês',
     limite: reserva,
@@ -127,7 +127,8 @@ function cartaoProjecao(proj, reserva) {
           <td class="dir num ${p.abaixoDaReserva ? 'valor-alerta' : ''}">${html.cru(p.abaixoDaReserva ? `${icone('alerta', 'ic ic-p')}<span class="visualmente-oculto">abaixo da reserva: </span>` : '')}${formatarReais(p.saldoFinal)}</td>
         </tr>`))}</tbody>
       </table></div>
-      <p class="subtitulo" style="margin-top:8px">Entram os recebimentos do contrato, o DAS e os gastos fixos. Gastos do dia a dia entram na F3.</p>
+      <p class="subtitulo" style="margin-top:8px">Entram os recebimentos do contrato, o DAS, os gastos lançados, fixos e parcelados
+        e o restante da estimativa mensal (${formatarReais(totalEstimativa(estado.estimativas))}/mês, <a href="#/gastos">editar em Gastos</a>).</p>
     </section>`;
 }
 
@@ -182,26 +183,6 @@ function cartaoContas(estado) {
     </section>`;
 }
 
-function cartaoFixos(estado) {
-  const itens = estado.recorrencias.map((r, i) => html`<li>
-    <span><strong>${r.descricao}</strong><br><small class="subtitulo">todo dia ${r.dia}${r.inicio ? ` · desde ${formatarData(r.inicio)}` : ''}${r.fim ? ` · até ${formatarData(r.fim)}` : ''}</small></span>
-    <span class="num">${formatarReais(r.valorCentavos)}</span>
-    <button type="button" class="btn btn-icone btn-fantasma" data-acao="removerFixo" data-indice="${i}" aria-label="Remover ${r.descricao}">${html.cru(icone('lixo'))}</button>
-  </li>`);
-  return html`
-    <section class="cartao" aria-labelledby="t-fixos">
-      <h2 id="t-fixos">Gastos fixos mensais</h2>
-      ${html.cru(itens.length ? `<ul class="lista-fixos">${itens.join('')}</ul>` : '<p class="vazio">Nenhum gasto fixo. Aluguel, internet, celular e assinaturas entram aqui.</p>')}
-      <form class="form-fixo" data-ao-enviar="adicionarFixo">
-        <label class="campo"><span>Descrição</span><input type="text" name="descricao" required placeholder="Ex.: Aluguel"></label>
-        <label class="campo"><span>Valor (R$)</span><input type="text" name="valor" inputmode="decimal" required placeholder="0,00"></label>
-        <label class="campo"><span>Dia</span><input type="number" name="dia" min="1" max="31" value="10" required></label>
-        <label class="campo"><span>Até (opcional)</span><input type="date" name="fim"></label>
-        <button class="btn btn-primario" type="submit">${html.cru(icone('mais'))} Adicionar</button>
-      </form>
-    </section>`;
-}
-
 // ---------- ações ----------
 
 function lerDinheiro(el, ctx) {
@@ -246,24 +227,6 @@ export const acoes = {
   horizonte(el, ev, ctx) {
     if (!ehMesISO(el.value) || el.value < mesDe(ctx.hoje)) { ctx.avisar('Escolha um mês a partir do atual.', true); return; }
     ctx.atualizar((e) => { e.caixa.horizonte = el.value; }, { aviso: 'Salvo.' });
-  },
-  adicionarFixo(form, ev, ctx) {
-    const f = form.elements;
-    const valor = lerReais(f.valor.value);
-    const dia = Number(f.dia.value);
-    if (valor == null || valor <= 0) { ctx.avisar('Valor inválido.', true); return; }
-    if (!Number.isInteger(dia) || dia < 1 || dia > 31) { ctx.avisar('Dia entre 1 e 31.', true); return; }
-    ctx.atualizar((e) => {
-      e.recorrencias.push({
-        id: `r${Date.now()}`, descricao: f.descricao.value.trim(), valorCentavos: valor, dia,
-        inicio: ctx.hoje, fim: f.fim.value || null, categoria: null,
-      });
-    }, { aviso: 'Gasto fixo adicionado.' });
-  },
-  removerFixo(el, ev, ctx) {
-    const r = ctx.estado.recorrencias[Number(el.dataset.indice)];
-    if (!confirm(`Remover “${r.descricao}”?`)) return;
-    ctx.atualizar((e) => { e.recorrencias.splice(Number(el.dataset.indice), 1); }, { aviso: 'Removido.' });
   },
   carregarExemplo: (el, ev, ctx) => ctx.carregarExemplo(),
   apagarExemplo: (el, ev, ctx) => ctx.apagarExemplo(),

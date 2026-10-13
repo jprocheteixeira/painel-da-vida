@@ -5,12 +5,17 @@
 // - o saldo informado nas contas vale no fim do dia `caixa.saldoEm`; só entram fluxos depois dessa data;
 // - recebimento entra na data de pagamento real; se ainda não pago, na data prevista;
 // - competência em andamento usa os dias previstos (marcados + sugeridos de hoje em diante);
-// - DAS e gastos fixos são considerados pagos no vencimento.
+// - DAS, gastos fixos e parcelas são considerados pagos no vencimento;
+// - gastos lançados entram na data do lançamento;
+// - a estimativa mensal de gastos (soma de `estimativas`) é um PISO do mês: no último dia de cada mês
+//   entra só a diferença entre a estimativa e o que já se conhece do mês (lançados + fixos + parcelas),
+//   para não contar duas vezes.
 
-import { mesDe, somarMeses, intervaloMeses, ultimoDiaDoMes } from '../utils/datas.js';
+import { mesDe, intervaloMeses, ultimoDiaDoMes } from '../utils/datas.js';
 import { somar } from '../utils/dinheiro.js';
 import { linhaDoTempo } from './prazos.js';
 import { dasDoPeriodo } from './mei.js';
+import { ocorrenciasFixo, ocorrenciasParcelamento, gastoConhecidoNoMes, totalEstimativa } from './gastos.js';
 
 export const CAIXA_PADRAO = Object.freeze({
   saldoEm: null,
@@ -39,17 +44,21 @@ export function recebimentos(estado, hoje) {
     }));
 }
 
-/** Ocorrências de um gasto fixo mensal entre dois meses. */
+/** Ocorrências de um gasto fixo mensal entre dois meses, como saídas de caixa. */
 export function ocorrenciasRecorrencia(rec, deMes, ateMes) {
-  const lista = [];
-  const inicio = rec.inicio ? mesDe(rec.inicio) : deMes;
-  const fim = rec.fim ? mesDe(rec.fim) : ateMes;
-  for (let m = deMes > inicio ? deMes : inicio; m <= ateMes && m <= fim; m = somarMeses(m, 1)) {
-    const ultimo = Number(ultimoDiaDoMes(m).slice(8));
-    const dia = String(Math.min(rec.dia || 1, ultimo)).padStart(2, '0');
-    lista.push({ data: `${m}-${dia}`, valorCentavos: -Math.abs(rec.valorCentavos), descricao: rec.descricao, origem: 'fixo' });
-  }
-  return lista;
+  return ocorrenciasFixo(rec, deMes, ateMes)
+    .map((o) => ({ data: o.data, valorCentavos: -o.valorCentavos, descricao: rec.descricao, origem: 'fixo' }));
+}
+
+/** Restante da estimativa mensal: um fluxo no último dia de cada mês, do mês atual em diante. */
+function gastoVariavelPrevisto(estado, hoje, deMes, ateMes) {
+  const estimativa = totalEstimativa(estado.estimativas);
+  if (!estimativa) return [];
+  const mesAtual = mesDe(hoje);
+  return intervaloMeses(deMes > mesAtual ? deMes : mesAtual, ateMes).map((m) => {
+    const valor = Math.max(0, estimativa - gastoConhecidoNoMes(estado, m));
+    return { data: ultimoDiaDoMes(m), valorCentavos: -valor, descricao: 'Restante da estimativa de gastos', origem: 'previsto' };
+  }).filter((f) => f.valorCentavos !== 0);
 }
 
 /** Todos os fluxos previstos/realizados até o fim do horizonte. */
@@ -61,7 +70,14 @@ export function fluxos(estado, hoje) {
     data: d.vencimento, valorCentavos: -d.valorCentavos, descricao: `DAS ${d.competencia}`, origem: 'das',
   }));
   const fixos = estado.recorrencias.flatMap((r) => ocorrenciasRecorrencia(r, deMes, ateMes));
-  return [...recebimentos(estado, hoje), ...das, ...fixos]
+  const parcelas = estado.parcelamentos.flatMap((p) => ocorrenciasParcelamento(p)
+    .map((o) => ({ data: o.data, valorCentavos: -o.valorCentavos, descricao: `${p.descricao} (${o.n}/${o.total})`, origem: 'parcela' })));
+  const lancados = estado.lancamentos.map((l) => ({
+    data: l.data, valorCentavos: -l.valorCentavos, descricao: l.nota || 'Gasto', origem: 'gasto',
+  }));
+  const variavel = gastoVariavelPrevisto(estado, hoje, deMes, ateMes);
+  return [...recebimentos(estado, hoje), ...das, ...fixos, ...parcelas, ...lancados, ...variavel]
+    .filter((f) => mesDe(f.data) <= ateMes)
     .sort((a, b) => a.data.localeCompare(b.data));
 }
 

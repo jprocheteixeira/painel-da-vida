@@ -24,10 +24,28 @@ export function estadoDeExemplo(hoje) {
   estado.contas[0].saldoCentavos = 42000;
   estado.contas[1].saldoCentavos = 185050;
   estado.caixa.saldoEm = hoje;
+  const mesAtual = mesDe(hoje);
+  const mesPassado = somarMeses(mesAtual, -1);
   estado.recorrencias = [
-    { id: 'r1', descricao: 'Aluguel (exemplo)', valorCentavos: 65000, dia: 10, inicio: hoje, fim: null, categoria: null },
-    { id: 'r2', descricao: 'Celular (exemplo)', valorCentavos: 4990, dia: 15, inicio: hoje, fim: null, categoria: null },
+    { id: 'r1', descricao: 'Aluguel (exemplo)', valorCentavos: 65000, dia: 10, inicio: `${mesPassado}-01`, fim: null, categoriaId: 'contas' },
+    { id: 'r2', descricao: 'Celular (exemplo)', valorCentavos: 4990, dia: 15, inicio: `${mesPassado}-01`, fim: null, categoriaId: 'contas' },
   ];
+  const valores = { 'e-aluguel': 65000, 'e-celular': 4990, 'e-mercado': 60000, 'e-gasolina': 35000, 'e-lazer': 25000 };
+  estado.estimativas = estado.estimativas
+    .filter((e) => e.id !== 'e-carro')
+    .map((e) => ({ ...e, valorCentavos: valores[e.id] ?? null }));
+  const gasto = (dia, mes, valor, categoriaId, nota) => ({ id: `ex-${mes}-${dia}-${valor}`, data: `${mes}-${dia}`, valorCentavos: valor, categoriaId, nota });
+  estado.lancamentos = [
+    gasto('03', mesPassado, 21890, 'mercado', 'Mercado do mês'), gasto('12', mesPassado, 15000, 'transporte', 'Gasolina'),
+    gasto('18', mesPassado, 8700, 'lazer', 'Pizza'), gasto('25', mesPassado, 12340, 'mercado', ''),
+    gasto('02', mesAtual, 24310, 'mercado', 'Mercado do mês'), gasto('05', mesAtual, 16000, 'transporte', 'Gasolina'),
+    gasto('08', mesAtual, 4590, 'saude', 'Farmácia'), gasto('10', mesAtual, 13500, 'lazer', 'Cinema e lanche'),
+  ].filter((g) => g.data <= hoje);
+  estado.parcelamentos = [
+    { id: 'p1', descricao: 'Fone (exemplo)', valorParcelaCentavos: 8990, parcelas: 5, primeiraData: `${mesPassado}-20`, categoriaId: 'hobby' },
+  ];
+  estado.categorias.find((c) => c.id === 'mercado').orcamentoCentavos = 60000;
+  estado.categorias.find((c) => c.id === 'lazer').orcamentoCentavos = 15000;
   const mesAnterior = mesDe(inicio);
   estado.medicoes[mesAnterior] = {
     mes: mesAnterior,

@@ -9,6 +9,8 @@ import { indiceEstado, ESTADOS } from '../../dominio/medicao.js';
 import { tarefasPJ, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
 import { precisaLembreteBackup } from '../../storage/backup.js';
 import { saldoAtual, projecao } from '../../dominio/caixa.js';
+import { resumoDoMes, totalEstimativa } from '../../dominio/gastos.js';
+import { mesDe } from '../../utils/datas.js';
 import { html, icone } from '../util.js';
 import { faixaExemplo } from './pj.js';
 
@@ -57,6 +59,8 @@ export function render(ctx) {
   const previstoTotal = somar(linhas.map((l) => (l.medicao.estado === 'trabalhando' ? l.valorPrevistoCentavos : l.valorCentavos)));
 
   const prazos = proximosPrazos(tarefasPJ(dados, hoje), hoje, 14);
+  const gastosMes = resumoDoMes(estado, mesDe(hoje));
+  const gastoEstimado = totalEstimativa(estado.estimativas);
   const abaixoReserva = projecao(estado, hoje).filter((p) => p.abaixoDaReserva).length
     ? `${projecao(estado, hoje).filter((p) => p.abaixoDaReserva).length} mês(es)` : '';
 
@@ -90,11 +94,11 @@ export function render(ctx) {
         <p class="kpi-valor">${formatarReais(totalAReceber)}</p>
         <p class="kpi-detalhe">aprovado ou com NF emitida</p>
       </article>
-      <article class="kpi">
-        <p class="kpi-rotulo">Contrato</p>
-        <p class="kpi-valor">${formatarReais(recebidoTotal)}</p>
-        <p class="kpi-detalhe">recebido de ${formatarReais(previstoTotal)} previstos</p>
-      </article>
+      <a class="kpi kpi-link ${gastoEstimado && gastosMes.total > gastoEstimado ? 'kpi-ruim' : ''}" href="#/gastos">
+        <p class="kpi-rotulo">Gastos do mês</p>
+        <p class="kpi-valor">${formatarReais(gastosMes.total)}</p>
+        <p class="kpi-detalhe">${gastoEstimado ? `de ${formatarReais(gastoEstimado)} estimados` : `contrato: ${formatarReais(recebidoTotal)} de ${formatarReais(previstoTotal)} recebidos`}</p>
+      </a>
       <a class="kpi kpi-link ${abaixoReserva ? 'kpi-ruim' : estado.caixa.saldoEm ? 'kpi-bom' : ''}" href="#/caixa">
         <p class="kpi-rotulo">Saldo hoje</p>
         <p class="kpi-valor">${formatarReais(saldoAtual(estado, hoje))}</p>

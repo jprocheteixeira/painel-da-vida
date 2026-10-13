@@ -5,8 +5,9 @@ import { CONTRATO_PADRAO } from '../dominio/contrato.js';
 import { completarFeriados } from '../dominio/feriados.js';
 import { CAIXA_PADRAO } from '../dominio/caixa.js';
 import { MEI_PADRAO } from '../dominio/mei.js';
+import { categoriasPadrao, estimativasPadrao } from '../dominio/gastos.js';
 
-export const VERSAO_ATUAL = 2;
+export const VERSAO_ATUAL = 3;
 export const ANOS_FERIADOS = [2026, 2027];
 
 export function contasPadrao() {
@@ -26,6 +27,10 @@ export function estadoInicial() {
     feriados: completarFeriados([], ANOS_FERIADOS),
     contas: contasPadrao(),
     recorrencias: [],
+    categorias: categoriasPadrao(),
+    lancamentos: [],
+    parcelamentos: [],
+    estimativas: estimativasPadrao(),
     caixa: { ...CAIXA_PADRAO },
     mei: { ...MEI_PADRAO },
     meta: { ultimoBackup: null, exemplo: false },
@@ -38,6 +43,12 @@ const MIGRACOES = [
   (dados) => ({ ...estadoInicial(), ...dados, versao: 1 }),
   // 1 → 2: contas, gastos fixos, parâmetros de caixa e do MEI (preenchidos com os padrões)
   (dados) => ({ ...dados, versao: 2 }),
+  // 2 → 3: gastos (categorias, lançamentos, parcelados, estimativa mensal); gasto fixo ganha categoria
+  (dados) => ({
+    ...dados,
+    versao: 3,
+    recorrencias: (dados.recorrencias || []).map((r) => ({ ...r, categoriaId: r.categoriaId || r.categoria || 'contas' })),
+  }),
 ];
 
 const ehObjeto = (v) => v && typeof v === 'object' && !Array.isArray(v);
@@ -55,6 +66,10 @@ function completar(dados) {
   if (!Array.isArray(d.feriados)) d.feriados = base.feriados;
   if (!Array.isArray(d.contas) || !d.contas.length) d.contas = base.contas;
   if (!Array.isArray(d.recorrencias)) d.recorrencias = [];
+  if (!Array.isArray(d.categorias) || !d.categorias.length) d.categorias = base.categorias;
+  if (!Array.isArray(d.lancamentos)) d.lancamentos = [];
+  if (!Array.isArray(d.parcelamentos)) d.parcelamentos = [];
+  if (!Array.isArray(d.estimativas)) d.estimativas = base.estimativas;
   // acrescenta os padrões só de anos que ainda não têm nenhum feriado (respeita exclusões)
   const anosComFeriado = new Set(d.feriados.map((f) => Number(f.data.slice(0, 4))));
   const faltando = ANOS_FERIADOS.filter((a) => !anosComFeriado.has(a));

@@ -5,8 +5,10 @@
 - [x] **F1** — estrutura, dados (localStorage versionado + migrações + backup), módulo PJ: calendário,
   boletim, estados, datas e texto da NFS-e; painel inicial básico; ajustes (perfil, contrato, feriados, dados).
 - [x] **F2** — contas, gastos fixos, competência × caixa (gráfico), projeção até mar/2027 com reserva mínima, simulador "e se" (prazo 15/30/45 × 2/3 dias).
-- [ ] **F3** — gastos (lançamento rápido, categorias, recorrentes/parcelados, resumo e gráficos).
-- [ ] **F4** — MEI (DAS, limite proporcional, DASN-SIMEI), agenda de prazos (+ .ics) e metas.
+- [x] **F3** — gastos: lançamento rápido (tecla N), categorias com orçamento, fixos e parcelados, estimativa mensal
+  editável (itens prontos, excluir o que não tem), resumo por categoria × mês anterior × orçamento. Falta: importar CSV.
+- [ ] **F4** — caixinhas/sonhos (reserva de emergência, investir, celular, carro, viagem… cada uma com meta, prazo e
+  quanto guardar por mês; excluir as que não quer), MEI (DAS, limite proporcional, DASN-SIMEI), agenda (+ .ics).
 - [ ] **F5** — polimento, acessibilidade, README completo.
 
 ## Pendências do usuário
@@ -20,5 +22,7 @@
 ### 13/10/2026 — PC de casa
 - Projeto criado. F1 concluída e verificada no navegador (desktop e celular, claro e escuro). 26/26 testes passando
   (rodados no navegador: Node ainda não instalado).
+- Cores revistas: fundo rosado/preto mantido, cartões neutros, vermelho = ruim e verde = bom.
+- F3 concluída (schema v3). 40/40 testes. Conversa movida para a pasta painel-da-vida.
 - Contrato começa em 13/10 (terça, já trabalhado), ter–qui; perfil privado atualizado (78 dias = R$ 15.600).
 - F2 concluída: tela Caixa, gráficos SVG próprios com dica, schema v2 (contas, recorrencias, caixa, mei). 33/33 testes.
