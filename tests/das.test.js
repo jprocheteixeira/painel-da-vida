@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { estadoInicial, migrar } from '../src/storage/migracoes.js';
+import { estadoInicial, migrar, VERSAO_ATUAL } from '../src/storage/migracoes.js';
 import { situacaoDas, dataLembreteDas } from '../src/dominio/mei.js';
 import { gastosDoMes, resumoDoMes, gastoConhecidoNoMes } from '../src/dominio/gastos.js';
 import { tarefasDAS, tarefasAutomaticas, proximosPrazos } from '../src/dominio/prazos.js';
@@ -72,7 +72,7 @@ test('arquivo .ics com eventos de dia inteiro e dois avisos', () => {
 test('migração v3 → v4 cria a categoria de impostos antes de Outros', () => {
   const v3 = { versao: 3, categorias: [{ id: 'mercado', nome: 'Mercado' }, { id: 'outros', nome: 'Outros' }] };
   const d = migrar(v3);
-  assert.equal(d.versao, 5);
+  assert.equal(d.versao, VERSAO_ATUAL);
   assert.deepEqual(d.categorias.map((c) => c.id), ['mercado', 'impostos', 'outros']);
   assert.deepEqual(d.dasPagos, {});
 });

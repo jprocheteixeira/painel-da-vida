@@ -13,11 +13,22 @@
 
 ## Pendências do usuário
 
+- Resolvidas (Ordem de Compra): nº da OC, e-mails de envio da nota, CNPJ do tomador, prazo (30 DDL), valor fixo mensal.
+  Digitar no app: itens da OC (Ajustes), nº da OC, código do item, CNPJ e e-mails (Trabalho PJ → Nota fiscal).
+- Confirmar com Compras a base de contagem dos 30 dias (e se os dias 13 e 14/10 estão cobertos pela OC).
+- Enviar o aceite da OC por e-mail (texto pronto no Painel).
+- Saldo atual das contas e gastos fixos — sem eles a projeção parte de R$ 0.
+- Contador: faturamento MEI pelo valor da NF, DAS no dia 20, limite de R$ 20.250 em 2026; código do serviço × CNAE do MEI.
 - Instalar o Node LTS para rodar `npm test` (os testes também rodam em `tests/index.html`).
-- Nº do pedido de compra, e-mail de envio da NF e prazo real de pagamento do tomador.
-- Saldo atual das contas e gastos fixos (aluguel etc.) — sem eles a projeção parte de R$ 0 e só mostra o PJ e o DAS.
 
 ## Registro
+
+### 30/10/2026 — sessão na nuvem
+- Ordem de Compra (schema v6): itens mensais de valor fixo, janela da NFS-e 15–20 (recusa depois do dia 20, alerta de
+  janela perdida), uma nota por item, descrição no formato da OC, e-mails do DANFSE e do XML, pagamento 30 DDL com base
+  de contagem editável (a confirmar), projeção dos 6 recebimentos com intervalo, simulador dia de emissão × prazo × base,
+  lembretes 15/18/20, tarefa de aceite com texto pronto, checklist de pendências. Marcar dias virou opcional.
+  `npm test` corrigido para o Node 22. 57/57 testes (Node e navegador).
 
 ### 13/10/2026 — PC de casa
 - Projeto criado. F1 concluída e verificada no navegador (desktop e celular, claro e escuro). 26/26 testes passando

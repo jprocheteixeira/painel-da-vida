@@ -1,24 +1,38 @@
-// Contrato PJ: dias sugeridos, marcação de dias, teto semanal e competência.
+// Contrato PJ: dias sugeridos, marcação de dias (informativa), teto semanal e competência.
 
 import {
   diaDaSemana, inicioSemana, intervaloDias, somarMeses, ultimoDiaDoMes, mesDe,
 } from '../utils/datas.js';
 import { feriadoEm } from './feriados.js';
 
+export const DESCRICAO_SERVICO_PADRAO = 'Contratação de serviço técnico de apoio a estruturação da confiabilidade da manutenção';
+
+// Dados da OC (nº, código do item, CNPJ, e-mails) ficam vazios aqui: são digitados no app e vivem só no aparelho.
 export const CONTRATO_PADRAO = Object.freeze({
-  valorDiaCentavos: 20000,
   diasSemana: [2, 3, 4], // 0 = dom … 6 = sáb
   tetoSemanal: 3,
   inicio: null,
   fim: null,
-  prazoPagamentoDias: 30,
-  diaCorte: 0, // 0 = competência é o mês inteiro; N = do dia N+1 do mês anterior ao dia N
+  diaCorte: 0, // 0 = competência é o mês inteiro; N = do dia N+1 do mês anterior ao dia N (fora da OC)
   avisoRescisaoDias: 30,
-  pedidoCompra: '',
+  // Ordem de Compra
+  numeroOC: '',
+  dataEntradaOC: null,
+  codigoItemOC: '',
+  itensOC: [], // [{ n, despacho, valorCentavos }]
+  nfDiaAbre: 15,
+  nfDiaLimite: 20,
+  diaEmissaoPrevisto: 20, // dia da janela usado na previsão (o mais tarde = conservador)
+  prazoPagamentoDias: 30, // 30 DDL
+  basePrazo: 'emissao', // emissao | entrada | fimMes (não está na OC: a confirmar)
+  basePrazoConfirmada: false,
+  formaPagamento: 'DDA ou depósito bancário',
   tomador: '',
-  emailEnvio: '',
-  descricaoServico: 'Preparação de documentos e apoio técnico-administrativo: '
-    + 'organização de bases de dados, cadastros e controles.',
+  cnpjTomador: '',
+  emailDanfse: '',
+  emailXml: '',
+  aceiteEnviadoEm: null,
+  descricaoServico: DESCRICAO_SERVICO_PADRAO,
 });
 
 /** Estados possíveis de um dia no calendário. */
@@ -122,16 +136,12 @@ export function semanasAcimaDoTeto(marcas, teto) {
     .sort((a, b) => a.semana.localeCompare(b.semana));
 }
 
-export function valorDosDias(qtdDias, contrato) {
-  return qtdDias * contrato.valorDiaCentavos;
-}
-
-/** Estimativa do contrato inteiro pelos dias sugeridos (sem marcações). */
+/** Dias sugeridos no contrato inteiro (só informação: o valor vem dos itens da OC). */
 export function estimativaContrato(contrato, feriados) {
   if (!contrato.inicio || !contrato.fim) return null;
   const dias = intervaloDias(contrato.inicio, contrato.fim)
     .filter((d) => ehDiaSugerido(d, contrato, feriados)).length;
-  return { dias, centavos: valorDosDias(dias, contrato) };
+  return { dias };
 }
 
 /** Competências ("aaaa-mm") cobertas pelo contrato. */

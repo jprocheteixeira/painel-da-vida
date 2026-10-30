@@ -3,8 +3,9 @@
 import { formatarData, nomeMes, rotuloCompetencia, ehMesISO, ehDataISO, mesDe } from '../../utils/datas.js';
 import { formatarReais, lerReais, centavosParaCampo } from '../../utils/dinheiro.js';
 import {
-  projecao, saldoAtual, competenciaVsCaixa, gradeSimulador, saldoNoFimDe,
+  projecao, saldoAtual, competenciaVsCaixa, gradeSimulador, saldoNoFimDe, recebimentos,
 } from '../../dominio/caixa.js';
+import { BASES_PRAZO, BASES_PRAZO_FRASE } from '../../dominio/oc.js';
 import { totalEstimativa } from '../../dominio/gastos.js';
 import { situacaoDas } from '../../dominio/mei.js';
 import { html, icone } from '../util.js';
@@ -40,7 +41,8 @@ export function render(ctx) {
       <div><strong>Informe quanto você tem hoje</strong>Preencha o saldo das contas abaixo para a projeção partir do valor real. Por enquanto ela parte de R$ 0,00.</div></div>` : '')}
     ${html.cru(abaixo.length && estado.caixa.saldoEm ? html`<div class="faixa faixa-alerta" role="alert">${html.cru(icone('alerta'))}
       <div><strong>Saldo abaixo da reserva mínima (${formatarReais(reserva)})</strong>
-      Em ${abaixo.map((p) => nomeMes(p.mes, true)).join(', ')}. O motivo mais comum: o pagamento chega cerca de 2 meses depois do trabalho.</div></div>` : '')}
+      Em ${abaixo.map((p) => nomeMes(p.mes, true)).join(', ')}. O motivo mais comum: cada item da OC só é pago cerca de 30 dias depois da nota (emitida de 15 a 20).</div></div>` : '')}
+    ${html.cru(foraDoHorizonte(estado, hoje))}
 
     <section class="bento" aria-label="Resumo do caixa">
       <article class="kpi kpi-destaque">
@@ -74,6 +76,14 @@ export function render(ctx) {
     </div>`;
 }
 
+function foraDoHorizonte(estado, hoje) {
+  const fora = recebimentos(estado, hoje).filter((r) => mesDe(r.data) > estado.caixa.horizonte);
+  if (!fora.length) return '';
+  return html`<div class="faixa faixa-info">${html.cru(icone('info'))}
+    <div><strong>${fora.length === 1 ? '1 recebimento fica' : `${fora.length} recebimentos ficam`} depois de ${nomeMes(estado.caixa.horizonte)}</strong>
+    O último item da OC é pago em ${nomeMes(mesDe(fora.at(-1).data))}. Aumente “Projetar até” em Contas e parâmetros para vê-lo no saldo.</div></div>`;
+}
+
 function legenda(itens) {
   return `<div class="legenda">${itens.map(([cor, nome, extra = '']) =>
     `<span><i style="background:var(${cor})${extra}"></i>${nome}</span>`).join('')}</div>`;
@@ -89,19 +99,20 @@ function cartaoCompetenciaCaixa(estado, hoje) {
     linhas,
     titulo: 'Competência e caixa por mês',
     series: [
-      { nome: 'Trabalhado (competência)', chave: 'competencia', cor: '--serie-1', previsto: (l) => l.competenciaPrevista },
+      { nome: 'Item da OC (competência)', chave: 'competencia', cor: '--serie-1', previsto: (l) => l.competenciaPrevista },
       { nome: 'Recebido (caixa)', chave: 'caixa', cor: '--serie-2', previsto: (l) => l.caixaPrevisto },
     ],
   });
   return html`
     <section class="cartao" aria-labelledby="t-cc">
       <h2 id="t-cc">Competência × caixa</h2>
-      ${html.cru(legenda([['--serie-1', 'Trabalhado no mês'], ['--serie-2', 'Entra na conta no mês']]))}
+      ${html.cru(legenda([['--serie-1', 'Item do mês (valor fixo)'], ['--serie-2', 'Entra na conta no mês']]))}
       ${html.cru(grafico)}
-      <p class="subtitulo">Barras mais apagadas são previstas. O dinheiro de um mês de trabalho entra cerca de 2 meses depois.</p>
+      <p class="subtitulo">Barras mais apagadas são previstas. Cada item vale o valor fixo da OC e entra cerca de 30 dias depois da nota.</p>
+      ${html.cru(tabelaRecebimentos(estado, hoje))}
       <details class="secao" style="margin-top:10px"><summary>Ver tabela</summary>
         <div class="tabela-rolagem"><table class="tabela">
-          <thead><tr><th scope="col">Mês</th><th scope="col" class="dir">Trabalhado</th><th scope="col" class="dir">Entra</th></tr></thead>
+          <thead><tr><th scope="col">Mês</th><th scope="col" class="dir">Item do mês</th><th scope="col" class="dir">Entra</th></tr></thead>
           <tbody>${html.cru(linhas.map((l) => html`<tr><td>${rotuloCompetencia(l.mes)}</td>
             <td class="dir num">${formatarReais(l.competencia)}${l.competenciaPrevista ? '*' : ''}</td>
             <td class="dir num">${formatarReais(l.caixa)}${l.caixaPrevisto ? '*' : ''}</td></tr>`))}</tbody>
@@ -109,6 +120,22 @@ function cartaoCompetenciaCaixa(estado, hoje) {
         <p class="subtitulo">* previsto</p>
       </details>
     </section>`;
+}
+
+/** Os recebimentos da OC, sempre com o intervalo (NF no início ou no fim da janela). */
+function tabelaRecebimentos(estado, hoje) {
+  const recs = recebimentos(estado, hoje);
+  return html`
+    <p class="rotulo" style="margin-top:12px">Recebimentos da OC</p>
+    <div class="tabela-rolagem"><table class="tabela">
+      <thead><tr><th scope="col">Item</th><th scope="col" class="dir">Valor</th><th scope="col" class="dir">Previsto</th><th scope="col" class="dir">Intervalo</th></tr></thead>
+      <tbody>${html.cru(recs.map((r) => html`<tr class="${r.perdida ? 'linha-atrasada' : ''}">
+        <th scope="row">Item ${r.item}${html.cru(r.perdida ? `<br><small class="valor-ruim">${icone('alerta', 'ic ic-p')}perdeu a janela</small>` : '')}</th>
+        <td class="dir num">${formatarReais(r.valorCentavos)}</td>
+        <td class="dir num">${formatarData(r.data)}${r.real ? ' ✓' : ''}</td>
+        <td class="dir num">${r.real ? 'recebido' : r.maisCedo === r.maisTarde ? 'NF emitida' : `${formatarData(r.maisCedo).slice(0, 5)} a ${formatarData(r.maisTarde).slice(0, 5)}`}</td>
+      </tr>`))}</tbody>
+    </table></div>`;
 }
 
 function cartaoProjecao(estado, proj, reserva) {
@@ -135,26 +162,35 @@ function cartaoProjecao(estado, proj, reserva) {
     </section>`;
 }
 
+// base de contagem escolhida no simulador (só nesta tela; não muda o contrato)
+let baseSimulada = null;
+
 function cartaoSimulador(estado, hoje, virada) {
-  const g = gradeSimulador(estado, hoje, virada);
-  const dias = g.linhas[0]?.celulas.map((c) => c.dias) || [];
-  const atualPrazo = estado.contrato.prazoPagamentoDias;
-  const atualDias = estado.contrato.diasSemana.length;
+  const { contrato } = estado;
+  const base = baseSimulada && BASES_PRAZO[baseSimulada] ? baseSimulada : contrato.basePrazo;
+  const g = gradeSimulador(estado, hoje, virada, { basePrazo: base });
+  const dias = g.linhas[0]?.celulas.map((c) => c.dia) || [];
+  const opcoes = Object.entries(BASES_PRAZO).map(([id, nome]) =>
+    `<option value="${id}" ${id === base ? 'selected' : ''}>${nome}${id === contrato.basePrazo ? ' (atual)' : ''}</option>`).join('');
   return html`
     <section class="cartao" aria-labelledby="t-sim">
       <h2 id="t-sim">E se…?</h2>
-      <p class="subtitulo">Saldo no fim de ${nomeMes(virada)} conforme o prazo de pagamento e os dias por semana
-        (só muda os dias futuros ainda não marcados).</p>
+      <p class="subtitulo">Saldo no fim de ${nomeMes(virada)} conforme o dia de emissão da NF na janela, o prazo de pagamento
+        e a base de contagem (só para as notas ainda não emitidas).</p>
+      <label class="campo" style="margin:8px 0"><span>Base de contagem do prazo</span>
+        <select id="sim-base" data-ao-mudar="simBase">${html.cru(opcoes)}</select></label>
       <div class="tabela-rolagem"><table class="tabela tabela-sim">
-        <thead><tr><th scope="col">Prazo</th>${html.cru(dias.map((d) => `<th scope="col" class="dir">${d} dias/sem.</th>`))}</tr></thead>
+        <thead><tr><th scope="col">Prazo</th>${html.cru(dias.map((d) => `<th scope="col" class="dir">NF no dia ${d}</th>`))}</tr></thead>
         <tbody>${html.cru(g.linhas.map((l) => html`<tr><th scope="row">${l.prazo} dias</th>${html.cru(l.celulas.map((c) => {
-          const atual = l.prazo === atualPrazo && c.dias === atualDias;
+          const atual = l.prazo === contrato.prazoPagamentoDias && c.dia === contrato.diaEmissaoPrevisto && base === contrato.basePrazo;
           const dif = c.diferenca ?? 0;
           return html`<td class="dir num ${atual ? 'celula-atual' : ''}">${formatarReais(c.saldo ?? 0)}
             <small class="${dif > 0 ? 'dif-mais' : dif < 0 ? 'dif-menos' : 'dif-zero'}">${atual ? 'cenário atual' : formatarReais(dif, { sinal: true })}</small></td>`;
         }))}</tr>`))}</tbody>
       </table></div>
-      <p class="subtitulo" style="margin-top:8px">Cenário atual: ${atualPrazo} dias de prazo, ${atualDias} dias por semana. A diferença é em relação a ele.</p>
+      <p class="subtitulo" style="margin-top:8px">Cenário atual: NF no dia ${contrato.diaEmissaoPrevisto}, ${contrato.prazoPagamentoDias} dias,
+        contados ${BASES_PRAZO_FRASE[contrato.basePrazo] || ''}${contrato.basePrazoConfirmada ? '' : ' (a confirmar)'}.
+        Dias por semana não mudam a receita: o valor de cada item é fixo.</p>
     </section>`;
 }
 
@@ -248,6 +284,10 @@ function lerDinheiro(el, ctx) {
 }
 
 export const acoes = {
+  simBase(el, ev, ctx) {
+    baseSimulada = el.value;
+    ctx.atualizar(() => {}, { renderizar: true });
+  },
   pagarDas: (el, ev, ctx) => ctx.marcarDasPago(el.dataset.competencia),
   pedirDas: (el, ev, ctx) => ctx.marcarDasPedido(el.dataset.competencia),
   desfazerDasPago(el, ev, ctx) {

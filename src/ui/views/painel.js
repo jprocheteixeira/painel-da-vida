@@ -1,18 +1,21 @@
-// Painel inicial: KPIs do PJ, próximos prazos e a linha "trabalhado → recebido".
+// Painel inicial: KPIs do PJ, próximos prazos, a linha "item da OC → recebido" e as pendências.
 
 import {
   formatarData, formatarDataCurta, nomeSemana, rotuloCompetencia, diferencaDias,
 } from '../../utils/datas.js';
 import { formatarReais, somar } from '../../utils/dinheiro.js';
-import { competenciaDoDia } from '../../dominio/contrato.js';
 import { indiceEstado, ESTADOS } from '../../dominio/medicao.js';
-import { tarefasPJ, tarefasDAS, tarefasAutomaticas, proximosPrazos, linhaDoTempo } from '../../dominio/prazos.js';
+import { itemDoDia, itensDaOC, textoAceite, totalDaOC } from '../../dominio/oc.js';
+import { listaPendencias } from '../../dominio/pendencias.js';
+import {
+  tarefasPJ, tarefasDAS, tarefaAceite, tarefasAutomaticas, proximosPrazos, linhaDoTempo,
+} from '../../dominio/prazos.js';
 import { gerarICS, tarefasParaEventos, carimboICS } from '../../dominio/agenda.js';
 import { precisaLembreteBackup, proximoBackup, datasBackup } from '../../storage/backup.js';
 import { saldoAtual, projecao } from '../../dominio/caixa.js';
 import { resumoDoMes, totalEstimativa } from '../../dominio/gastos.js';
 import { mesDe } from '../../utils/datas.js';
-import { html, icone, baixarArquivo } from '../util.js';
+import { html, icone, baixarArquivo, copiarTexto } from '../util.js';
 import { faixaExemplo } from './pj.js';
 
 export function titulo() {
@@ -32,9 +35,9 @@ export function render(ctx) {
       <div class="cartao vazio-grande">
         <h2>Primeiros passos</h2>
         <ol class="passos">
-          <li>Configure o contrato (valor por dia, dias da semana e data de início) em <a href="#/ajustes">Ajustes</a>.</li>
+          <li>Configure o contrato (dias da semana, data de início) e os itens da OC em <a href="#/ajustes">Ajustes</a>.</li>
           <li>Se você já tem um backup ou um arquivo de perfil, importe-o em <a href="#/ajustes">Ajustes → Dados</a>.</li>
-          <li>Marque os dias trabalhados em <a href="#/pj">Trabalho PJ</a>; o app calcula boletim, NF e pagamento.</li>
+          <li>Marque os dias trabalhados em <a href="#/pj">Trabalho PJ</a>; o app calcula boletim, janela da NF e pagamento.</li>
         </ol>
         <div class="linha-acoes">
           <a class="btn btn-primario" href="#/ajustes">Configurar</a>
@@ -45,7 +48,8 @@ export function render(ctx) {
 
   const dados = { contrato, feriados: estado.feriados, marcas: estado.marcas, medicoes: estado.medicoes };
   const linhas = linhaDoTempo(dados, hoje);
-  const mesAtual = competenciaDoDia(hoje, contrato.diaCorte);
+  const itemAtual = itemDoDia(contrato, hoje);
+  const mesAtual = itemAtual ? mesDe(itemAtual.despacho) : null;
   const atual = linhas.find((l) => l.mes === mesAtual);
 
   const aReceber = linhas.filter((l) => {
@@ -54,10 +58,10 @@ export function render(ctx) {
   });
   const totalAReceber = somar(aReceber.map((l) => l.valorCentavos));
   const proximoPagamento = linhas
-    .filter((l) => l.medicao.estado !== 'pago' && l.diasPrevistos > 0)
+    .filter((l) => l.medicao.estado !== 'pago')
     .sort((a, b) => a.datas.pagamento.data.localeCompare(b.datas.pagamento.data))[0];
   const recebidoTotal = somar(linhas.filter((l) => l.medicao.estado === 'pago').map((l) => l.valorCentavos));
-  const previstoTotal = somar(linhas.map((l) => (l.medicao.estado === 'trabalhando' ? l.valorPrevistoCentavos : l.valorCentavos)));
+  const previstoTotal = totalDaOC(contrato);
 
   const backup = proximoBackup(estado, hoje);
   const tarefaBackup = backup ? [{ id: `backup:${backup}`, origem: 'backup', data: backup, titulo: 'Fazer o backup do mês' }] : [];
@@ -82,17 +86,17 @@ export function render(ctx) {
       <article class="kpi kpi-destaque">
         <p class="kpi-rotulo">Próximo pagamento</p>
         ${html.cru(proximoPagamento ? html`
-          <p class="kpi-valor">${formatarReais(proximoPagamento.medicao.estado === 'trabalhando' ? proximoPagamento.valorPrevistoCentavos : proximoPagamento.valorCentavos)}</p>
-          <p class="kpi-detalhe">${rotuloCompetencia(proximoPagamento.mes)} · ${proximoPagamento.datas.pagamento.real ? 'em' : 'previsto para'}
+          <p class="kpi-valor">${formatarReais(proximoPagamento.valorCentavos)}</p>
+          <p class="kpi-detalhe">Item ${proximoPagamento.item.n} · ${proximoPagamento.datas.pagamento.real ? 'em' : 'previsto para'}
             <strong class="num">${formatarData(proximoPagamento.datas.pagamento.data)}</strong>
-            (${emDias(diferencaDias(hoje, proximoPagamento.datas.pagamento.data))})</p>`
+            (${emDias(diferencaDias(hoje, proximoPagamento.datas.pagamento.data))})${html.cru(intervaloPagamento(proximoPagamento.datas.pagamento))}</p>`
           : '<p class="kpi-valor">—</p><p class="kpi-detalhe">Nada previsto.</p>')}
       </article>
-      <article class="kpi">
-        <p class="kpi-rotulo">Trabalhado em ${rotuloCompetencia(mesAtual).split('/')[0].toLowerCase()}</p>
+      <a class="kpi kpi-link ${atual?.datas.perdida ? 'kpi-ruim' : ''}" href="#/pj">
+        <p class="kpi-rotulo">${atual ? `Item ${atual.item.n} da OC · ${rotuloCompetencia(atual.mes).split('/')[0].toLowerCase()}` : 'Item da OC'}</p>
         <p class="kpi-valor">${formatarReais(atual?.valorCentavos ?? 0)}</p>
-        <p class="kpi-detalhe num">${atual?.diasTrabalhados ?? 0} ${(atual?.diasTrabalhados ?? 0) === 1 ? 'dia' : 'dias'} · previsto ${formatarReais(atual?.valorPrevistoCentavos ?? 0)}</p>
-      </article>
+        <p class="kpi-detalhe num">${atual ? `${atual.diasTrabalhados} ${atual.diasTrabalhados === 1 ? 'dia' : 'dias'} de atividade · NF de ${formatarDataCurta(atual.datas.janela.abre)} a ${formatarDataCurta(atual.datas.janela.limite)}${atual.datas.perdida ? ' · ⚠ janela perdida' : ''}` : linhas.length ? 'OC encerrada' : 'cadastre os itens em Ajustes'}</p>
+      </a>
       <article class="kpi ${totalAReceber > 0 ? 'kpi-bom' : ''}">
         <p class="kpi-rotulo">A receber</p>
         <p class="kpi-valor">${formatarReais(totalAReceber)}</p>
@@ -101,7 +105,7 @@ export function render(ctx) {
       <a class="kpi kpi-link ${gastoEstimado && gastosMes.total > gastoEstimado ? 'kpi-ruim' : ''}" href="#/gastos">
         <p class="kpi-rotulo">Gastos do mês</p>
         <p class="kpi-valor">${formatarReais(gastosMes.total)}</p>
-        <p class="kpi-detalhe">${gastoEstimado ? `de ${formatarReais(gastoEstimado)} estimados` : `contrato: ${formatarReais(recebidoTotal)} de ${formatarReais(previstoTotal)} recebidos`}</p>
+        <p class="kpi-detalhe">${gastoEstimado ? `de ${formatarReais(gastoEstimado)} estimados` : `OC: ${formatarReais(recebidoTotal)} de ${formatarReais(previstoTotal)} recebidos`}</p>
       </a>
       <a class="kpi kpi-link ${!estado.caixa.saldoEm ? '' : abaixoReserva ? 'kpi-ruim' : 'kpi-bom'}" href="#/caixa">
         <p class="kpi-rotulo">Saldo hoje</p>
@@ -122,31 +126,69 @@ export function render(ctx) {
               <small>${rotuloUrgencia(t, hoje)}${t.detalhe ? ` · ${t.detalhe}` : ''}</small></span>
             ${html.cru(botaoPrazo(t))}
           </li>`))}</ul>` : '<p class="vazio">Nenhum prazo nos próximos 14 dias.</p>')}
+        ${html.cru(!contrato.aceiteEnviadoEm && itensDaOC(contrato).length ? html`
+          <details class="secao" style="margin-top:12px"><summary>Texto do aceite da OC</summary>
+            <pre class="texto-pronto" id="texto-aceite">${textoAceite(contrato, estado.perfil)}</pre>
+          </details>` : '')}
       </section>
 
       <section class="cartao" aria-labelledby="t-linha">
-        <h2 id="t-linha">Trabalhado → recebido</h2>
-        <div class="tabela-rolagem">
+        <h2 id="t-linha">Itens da OC → recebido</h2>
+        ${html.cru(linhas.length ? html`<div class="tabela-rolagem">
           <table class="tabela">
-            <thead><tr><th scope="col">Competência</th><th scope="col" class="dir">Valor</th><th scope="col">Etapa</th><th scope="col" class="dir">Recebe</th></tr></thead>
+            <thead><tr><th scope="col">Item</th><th scope="col" class="dir">Valor</th><th scope="col">Etapa</th><th scope="col" class="dir">Recebe</th></tr></thead>
             <tbody>${html.cru(linhas.map((l) => linhaCompetencia(l, mesAtual)))}</tbody>
           </table>
         </div>
-        <p class="subtitulo" style="margin-top:8px">Valores de meses em andamento são previstos (dias marcados + sugeridos).</p>
+        <p class="subtitulo" style="margin-top:8px">Valor fixo por item. Sem NF emitida, “Recebe” é a previsão com a nota no fim da janela; embaixo, o intervalo.</p>`
+          : '<p class="vazio">Cadastre os itens da OC em <a href="#/ajustes">Ajustes</a>.</p>')}
       </section>
+
+      ${html.cru(cartaoPendencias(estado))}
     </div>`;
+}
+
+function intervaloPagamento(p) {
+  if (p.real || p.maisCedo === p.maisTarde) return '';
+  return html`<br><small class="num">entre ${formatarDataCurta(p.maisCedo)} e ${formatarDataCurta(p.maisTarde)}</small>`;
+}
+
+function cartaoPendencias(estado) {
+  const lista = listaPendencias(estado);
+  const abertas = lista.filter((p) => !p.feita).length;
+  const travada = (p) => p.automatica && p.feita && !['oc-aceite', 'oc-base'].includes(p.id);
+  const itens = lista.map((p, i) => html`<li class="${p.feita ? 'feita' : ''}">
+    <label class="interruptor"><input type="checkbox" ${html.cru(p.feita ? 'checked' : '')} ${html.cru(travada(p) ? 'disabled' : '')}
+      data-ao-mudar="marcarPendencia" data-indice="${i}" aria-label="${p.texto}"></label>
+    <span class="p-texto">${p.texto}${html.cru(p.automatica ? ' <small class="subtitulo">(confere sozinho)</small>' : '')}</span>
+    ${html.cru(p.automatica ? '' : html`<button type="button" class="btn btn-icone btn-fantasma btn-pequeno" data-acao="removerPendencia" data-indice="${i}"
+      aria-label="Remover ${p.texto}">${html.cru(icone('lixo'))}</button>`)}
+  </li>`);
+  return html`
+    <section class="cartao" aria-labelledby="t-pend">
+      <h2 id="t-pend">Pendências <span class="subtitulo num">${abertas} em aberto</span></h2>
+      <ul class="lista-pendencias">${html.cru(itens)}</ul>
+      <form class="avancar-linha" style="margin-top:10px" data-ao-enviar="adicionarPendencia">
+        <label class="campo"><span class="visualmente-oculto">Nova pendência</span>
+          <input type="text" name="texto" id="nova-pendencia" required placeholder="Nova pendência"></label>
+        <button class="btn" type="submit">${html.cru(icone('mais'))} Adicionar</button>
+      </form>
+    </section>`;
 }
 
 function linhaCompetencia(l, mesAtual) {
   const i = indiceEstado(l.medicao.estado);
-  const valor = i === 0 ? l.valorPrevistoCentavos : l.valorCentavos;
   const trilha = ESTADOS.slice(1).map((_, k) => `<div class="${k < i ? 'feito' : ''}"></div>`).join('');
+  const p = l.datas.pagamento;
   return html`<tr class="${l.mes === mesAtual ? 'atual' : ''}">
-    <td><a href="#/pj/${l.mes}">${rotuloCompetencia(l.mes)}</a></td>
-    <td class="dir num">${formatarReais(valor)}${html.cru(i === 0 ? '<br><small class="subtitulo">previsto</small>' : '')}</td>
+    <td><a href="#/pj/${l.mes}">Item ${l.item.n}</a><br><small class="subtitulo">${rotuloCompetencia(l.mes)}</small></td>
+    <td class="dir num">${formatarReais(l.valorCentavos)}</td>
     <td><span class="estado-chip ${l.medicao.estado === 'pago' ? 'pago' : ''}">${ESTADOS[i].nome}</span>
+      ${html.cru(l.datas.perdida ? `<br><small class="valor-ruim">${icone('alerta', 'ic ic-p')}perdeu a janela</small>` : '')}
       <div class="trilha" aria-hidden="true">${html.cru(trilha)}</div></td>
-    <td class="dir num">${formatarDataCurta(l.datas.pagamento.data)}${html.cru(l.datas.pagamento.real ? '' : '<br><small class="subtitulo">prev.</small>')}</td>
+    <td class="dir num">${formatarDataCurta(p.data)}${html.cru(p.real ? '' : p.maisCedo !== p.maisTarde
+      ? `<br><small class="subtitulo">${formatarDataCurta(p.maisCedo)}–${formatarDataCurta(p.maisTarde)}</small>`
+      : '<br><small class="subtitulo">prev.</small>')}</td>
   </tr>`;
 }
 
@@ -185,6 +227,10 @@ function lembreteBackup(ctx) {
 }
 
 function botaoPrazo(t) {
+  if (t.origem === 'aceite') {
+    return html`<span class="celula-acoes"><button type="button" class="btn btn-pequeno" data-acao="copiarAceite">${html.cru(icone('copiar'))} Copiar texto</button>
+      <button type="button" class="btn btn-pequeno" data-acao="aceiteEnviado">${html.cru(icone('check'))} Enviei</button></span>`;
+  }
   if (t.origem === 'das') {
     return html`<button type="button" class="btn btn-pequeno" data-acao="pagarDas" data-competencia="${t.competencia}">${html.cru(icone('check'))} Paguei</button>`;
   }
@@ -201,12 +247,41 @@ export const acoes = {
   pagarDas: (el, ev, ctx) => ctx.marcarDasPago(el.dataset.competencia),
   pedirDas: (el, ev, ctx) => ctx.marcarDasPedido(el.dataset.competencia),
 
+  async copiarAceite(el, ev, ctx) {
+    const ok = await copiarTexto(textoAceite(ctx.estado.contrato, ctx.estado.perfil));
+    ctx.avisar(ok ? 'Texto do aceite copiado. Cole no e-mail de resposta à OC.' : 'Não foi possível copiar.', !ok);
+  },
+  aceiteEnviado(el, ev, ctx) {
+    ctx.atualizar((e) => { e.contrato.aceiteEnviadoEm = ctx.hoje; }, { aviso: 'Aceite da OC marcado como enviado.' });
+  },
+
+  marcarPendencia(el, ev, ctx) {
+    const i = Number(el.dataset.indice);
+    ctx.atualizar((e) => {
+      const p = e.pendencias[i];
+      if (p.id === 'oc-aceite') e.contrato.aceiteEnviadoEm = el.checked ? (e.contrato.aceiteEnviadoEm || ctx.hoje) : null;
+      if (p.id === 'oc-base') e.contrato.basePrazoConfirmada = el.checked;
+      p.feita = el.checked;
+    });
+  },
+  removerPendencia(el, ev, ctx) {
+    const i = Number(el.dataset.indice);
+    if (!confirm(`Remover “${ctx.estado.pendencias[i].texto}”?`)) return;
+    ctx.atualizar((e) => { e.pendencias.splice(i, 1); }, { aviso: 'Pendência removida.' });
+  },
+  adicionarPendencia(form, ev, ctx) {
+    const texto = form.elements.texto.value.trim();
+    if (!texto) return;
+    ctx.atualizar((e) => { e.pendencias.push({ id: `p${Date.now()}`, texto, feita: false }); }, { aviso: 'Pendência adicionada.' });
+  },
+
   exportarAgenda(el, ev, ctx) {
     const { estado, hoje } = ctx;
-    // DAS (e pedidos de dinheiro) até o fim da projeção + próxima etapa de cada mês do contrato + backups
+    // DAS (e pedidos de dinheiro) até o fim da projeção + aceite da OC + etapa e janela da NF de cada item + backups
     const das = tarefasDAS(estado, hoje, estado.caixa.horizonte).filter((t) => t.data >= hoje);
     const { contrato, feriados, marcas, medicoes } = estado;
-    const pj = tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje).filter((t) => t.data >= hoje);
+    const pj = [...tarefaAceite(contrato, hoje), ...tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje)]
+      .filter((t) => t.data >= hoje);
     const backups = datasBackup(estado, hoje, estado.caixa.horizonte)
       .map((d) => ({ id: `backup:${d}`, data: d, titulo: 'Fazer o backup do Painel da Vida' }));
     const eventos = tarefasParaEventos([...das, ...pj, ...backups]);

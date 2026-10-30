@@ -1,8 +1,9 @@
-// Prazos gerados automaticamente: medições do PJ e DAS do MEI (a agenda manual vem na F4).
+// Prazos gerados automaticamente: medições e notas dos itens da OC, aceite da OC e DAS do MEI.
 
 import { diferencaDias, rotuloCompetencia, mesDe, formatarData, somarDias } from '../utils/datas.js';
-import { competenciasDoContrato, diasPrevistos, periodoCompetencia } from './contrato.js';
-import { datasChave, indiceEstado, novaMedicao, resumoMedicao } from './medicao.js';
+import { diasPrevistos } from './contrato.js';
+import { datasChave, indiceEstado, novaMedicao } from './medicao.js';
+import { itensDaOC } from './oc.js';
 import { situacaoDas } from './mei.js';
 
 /** Urgência pela distância até a data: 'atrasado' | 'hoje' | 'proximo' (≤ 3 dias) | 'normal'. */
@@ -14,68 +15,91 @@ export function urgencia(data, hoje) {
   return 'normal';
 }
 
+const curta = (iso) => formatarData(iso).slice(0, 5);
+
+/** Lembretes da janela da NF: abre (15), lembrete forte (18) e último dia (20). Só os de hoje em diante. */
+function lembretesJanela(base, n, janela, hoje) {
+  return [
+    { sufixo: 'abre', data: janela.abre, titulo: `Abriu a janela da NF do item ${n}`, detalhe: `emitir até ${curta(janela.limite)}` },
+    { sufixo: 'forte', data: janela.lembrete, titulo: `Emitir a NF do item ${n}: a janela fecha dia ${janela.limite.slice(8)}`, detalhe: 'depois do dia 20 a nota é recusada' },
+    { sufixo: 'ultimo', data: janela.limite, titulo: `Último dia para emitir a NF do item ${n}`, detalhe: 'nota emitida do dia 21 em diante é recusada' },
+  ]
+    .filter((l, k, todos) => l.data >= hoje && todos.findIndex((o) => o.data === l.data) === k)
+    .map((l) => ({ ...base, id: `pj:${base.mes}:nf-${l.sufixo}:${mesDe(janela.abre)}`, data: l.data, titulo: l.titulo, detalhe: l.detalhe }));
+}
+
 /**
- * Uma tarefa por competência: a próxima ação pendente do fluxo.
- * Competências futuras sem dia previsto não geram tarefa.
+ * Tarefas de cada item da OC: a próxima ação pendente do fluxo e, enquanto a NF não sai, os lembretes
+ * da janela. Perdeu a janela: alerta vermelho e lembretes da janela do mês seguinte.
+ * Itens futuros sem dia previsto e ainda em "trabalhando" não geram tarefa de boletim.
  */
 export function tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje) {
   const tarefas = [];
-  for (const mes of competenciasDoContrato(contrato)) {
+  for (const item of itensDaOC(contrato)) {
+    const mes = mesDe(item.despacho);
     const medicao = medicoes[mes] || novaMedicao(mes);
-    const periodo = periodoCompetencia(mes, contrato.diaCorte);
-    const previstos = diasPrevistos(periodo, marcas, contrato, feriados, hoje);
-    if (!previstos.length && medicao.estado === 'trabalhando') continue;
-
-    const datas = datasChave(mes, { contrato, feriados, medicao });
+    const datas = datasChave(mes, { contrato, feriados, medicao, hoje });
     const competencia = rotuloCompetencia(mes);
     const i = indiceEstado(medicao.estado);
-    const base = { mes, origem: 'pj', competencia };
-    if (i === 0) {
+    const base = { mes, origem: 'pj', competencia, item: item.n };
+    const previstos = diasPrevistos(datas.periodo, marcas, contrato, feriados, hoje);
+    if (i === 0 && (previstos.length || datas.periodo.inicio <= hoje)) {
       tarefas.push({ ...base, id: `pj:${mes}:boletim`, data: datas.envioBoletim.prazo,
-        titulo: `Enviar boletim de medição (${competencia})` });
+        titulo: `Enviar boletim e relatório do item ${item.n} (${competencia})` });
     } else if (i === 1) {
       tarefas.push({ ...base, id: `pj:${mes}:aprovacao`, data: datas.aprovacao.prazo,
-        titulo: `Prazo de aprovação do boletim (${competencia})` });
-    } else if (i === 2) {
-      tarefas.push({ ...base, id: `pj:${mes}:nf`, data: datas.aprovacao.data,
-        titulo: `Emitir a NFS-e (${competencia})` });
+        titulo: `Aprovação do boletim do item ${item.n} (${competencia})` });
+    }
+    if (i <= 2) {
+      if (datas.perdida) {
+        tarefas.push({ ...base, id: `pj:${mes}:perdeu`, origem: 'pj-perdeu', data: datas.janelaItem.limite,
+          titulo: `Perdeu a janela da NF do item ${item.n}: só no próximo mês`,
+          detalhe: `nova janela ${curta(datas.janela.abre)} a ${curta(datas.janela.limite)}; recebe entre `
+            + `${curta(datas.pagamento.maisCedo)} e ${curta(datas.pagamento.maisTarde)}` });
+      }
+      if (i > 0 || previstos.length || datas.periodo.inicio <= hoje) tarefas.push(...lembretesJanela(base, item.n, datas.janela, hoje));
     } else if (i === 3) {
       tarefas.push({ ...base, id: `pj:${mes}:email`, data: datas.emissaoNF.data,
-        titulo: `Enviar a NF por e-mail (${competencia})` });
+        titulo: `Enviar DANFSE (PDF) e XML do item ${item.n} por e-mail` });
     } else if (i === 4) {
       tarefas.push({ ...base, id: `pj:${mes}:pagamento`, data: datas.pagamento.data,
-        titulo: `Pagamento previsto (${competencia})`,
-        valorCentavos: resumoMedicao(mes, { contrato, marcas }).valorCentavos });
+        titulo: `Pagamento previsto do item ${item.n} (${competencia})`, valorCentavos: item.valorCentavos });
     }
   }
   return tarefas.sort((a, b) => a.data.localeCompare(b.data));
+}
+
+/** Tarefa "enviar o aceite da OC" enquanto não for marcada como enviada (prazo: o quanto antes = hoje). */
+export function tarefaAceite(contrato, hoje) {
+  if (!itensDaOC(contrato).length || contrato.aceiteEnviadoEm) return [];
+  return [{ id: 'oc:aceite', origem: 'aceite', data: hoje, titulo: 'Enviar aceite da OC por e-mail',
+    detalhe: 'pendente · o quanto antes, citando os itens e as condições' }];
 }
 
 /** Tarefas até `dias` à frente, mais as atrasadas. */
 export function proximosPrazos(tarefas, hoje, dias = 14) {
   return tarefas
     .filter((t) => diferencaDias(hoje, t.data) <= dias)
-    .map((t) => ({ ...t, urgencia: urgencia(t.data, hoje) }));
+    .map((t) => ({ ...t, urgencia: t.origem === 'pj-perdeu' ? 'atrasado' : urgencia(t.data, hoje) }));
 }
 
 /**
- * Linha "trabalhado → recebido" de cada competência do contrato:
- * dias (marcados e previstos), valor previsto e datas de recebimento.
+ * Linha "trabalhado → recebido" de cada item da OC: valor fixo, dias (só informação) e datas.
  */
 export function linhaDoTempo({ contrato, feriados, marcas, medicoes }, hoje) {
-  return competenciasDoContrato(contrato).map((mes) => {
+  return itensDaOC(contrato).map((item) => {
+    const mes = mesDe(item.despacho);
     const medicao = medicoes[mes] || novaMedicao(mes);
-    const periodo = periodoCompetencia(mes, contrato.diaCorte);
-    const { dias } = resumoMedicao(mes, { contrato, marcas });
-    const previstos = diasPrevistos(periodo, marcas, contrato, feriados, hoje);
-    const datas = datasChave(mes, { contrato, feriados, medicao });
+    const datas = datasChave(mes, { contrato, feriados, medicao, hoje });
+    const dias = Object.keys(marcas).filter((d) => marcas[d] === 'trabalhado' && d >= datas.periodo.inicio && d <= datas.periodo.fim);
+    const previstos = diasPrevistos(datas.periodo, marcas, contrato, feriados, hoje);
     return {
       mes,
+      item,
       medicao,
       diasTrabalhados: dias.length,
       diasPrevistos: previstos.length,
-      valorCentavos: dias.length * contrato.valorDiaCentavos,
-      valorPrevistoCentavos: previstos.length * contrato.valorDiaCentavos,
+      valorCentavos: item.valorCentavos,
       datas,
     };
   });
@@ -110,10 +134,10 @@ export function tarefasDAS(estado, hoje, ateMes = mesDe(hoje)) {
     });
 }
 
-/** Todas as tarefas automáticas (PJ + DAS), em ordem de data. */
+/** Todas as tarefas automáticas (aceite + PJ + DAS), em ordem de data. */
 export function tarefasAutomaticas(estado, hoje) {
   const { contrato, feriados, marcas, medicoes } = estado;
-  return [...tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje), ...tarefasDAS(estado, hoje)]
+  return [...tarefaAceite(contrato, hoje), ...tarefasPJ({ contrato, feriados, marcas, medicoes }, hoje), ...tarefasDAS(estado, hoje)]
     .sort((a, b) => a.data.localeCompare(b.data));
 }
 

@@ -231,7 +231,7 @@ main:focus { outline: none; }
 @media (max-width: 480px) { .topo-acoes .btn span { display: none; } .topo-acoes .btn { width: 40px; padding: 0; } }
 
 .campo { display: grid; gap: 5px; }
-.campo > span, .rotulo { font-size: 0.84rem; font-weight: 600; color: var(--texto-2); }
+.campo > span, .campo > label:first-child, .rotulo { font-size: 0.84rem; font-weight: 600; color: var(--texto-2); }
 .campo small { color: var(--texto-3); font-size: 0.8rem; }
 input[type="text"], input[type="email"], input[type="date"], input[type="number"], input:not([type]), textarea, select {
   width: 100%; min-height: 40px; padding: 8px 11px; border: 1px solid var(--borda); border-radius: var(--raio-p);
@@ -638,3 +638,9 @@ kbd { font-family: var(--mono); font-size: 0.78rem; padding: 1px 6px; border: 1p
 .celula-acoes { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
 .select-pequeno { min-height: 32px; padding: 4px 8px; font-size: 0.86rem; width: auto; }
 .linha-atrasada th, .linha-atrasada td { background: var(--perigo-fundo); }
+
+/* pendências (Painel) e itens da OC (Ajustes) */
+.lista-pendencias { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.lista-pendencias li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 6px 4px; border-bottom: 1px dashed var(--borda); }
+.lista-pendencias li.feita .p-texto { color: var(--texto-3); text-decoration: line-through; }
+.tabela-itens input { width: 100%; min-width: 120px; }

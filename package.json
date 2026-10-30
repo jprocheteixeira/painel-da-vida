@@ -4,6 +4,6 @@
   "type": "module",
   "description": "Dinheiro, trabalho PJ e prazos. App web local, sem backend.",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test tests/*.test.js"
   }
 }

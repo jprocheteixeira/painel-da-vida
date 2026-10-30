@@ -3,6 +3,7 @@
 
 import { intervaloDias, somarDias, mesDe, somarMeses, primeiroDiaDoMes } from '../utils/datas.js';
 import { ehDiaSugerido, DIA } from '../dominio/contrato.js';
+import { gerarItens } from '../dominio/oc.js';
 import { estadoInicial } from './migracoes.js';
 
 export function estadoDeExemplo(hoje) {
@@ -14,8 +15,13 @@ export function estadoDeExemplo(hoje) {
     inicio,
     fim: somarDias(primeiroDiaDoMes(somarMeses(mesDe(hoje), 5)), -1),
     tomador: 'Empresa Exemplo S.A. (fictícia)',
-    emailEnvio: 'financeiro@exemplo.invalid',
-    pedidoCompra: '',
+    cnpjTomador: '00.000.000/0002-00',
+    emailDanfse: 'notas@exemplo.invalid',
+    emailXml: 'xml@exemplo.invalid',
+    numeroOC: '',
+    codigoItemOC: 'EX0000001',
+    dataEntradaOC: inicio,
+    itensOC: gerarItens({ quantidade: 6, valorCentavos: 250000, primeiroDespacho: `${mesDe(hoje)}-15` }),
   });
   // marca como trabalhados os dias sugeridos até ontem, com uma folga no meio
   const ontem = somarDias(hoje, -1);
@@ -46,11 +52,11 @@ export function estadoDeExemplo(hoje) {
   ];
   estado.categorias.find((c) => c.id === 'mercado').orcamentoCentavos = 60000;
   estado.categorias.find((c) => c.id === 'lazer').orcamentoCentavos = 15000;
-  const mesAnterior = mesDe(inicio);
-  estado.medicoes[mesAnterior] = {
-    mes: mesAnterior,
+  // item 1 (despacho no dia 15 deste mês): boletim já enviado
+  estado.medicoes[mesAtual] = {
+    mes: mesAtual,
     estado: 'boletim_enviado',
-    historico: { boletim_enviado: somarDias(primeiroDiaDoMes(mesDe(hoje)), -1) },
+    historico: { boletim_enviado: somarDias(primeiroDiaDoMes(mesAtual), -1) },
     resumo: 'Organização da base de cadastros e conferência de controles (exemplo).',
     numeroNF: '',
   };

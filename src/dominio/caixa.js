@@ -3,8 +3,8 @@
 // Fluxo = { data, valorCentavos (com sinal), descricao, origem }.
 // Premissas:
 // - o saldo informado nas contas vale no fim do dia `caixa.saldoEm`; só entram fluxos depois dessa data;
-// - recebimento entra na data de pagamento real; se ainda não pago, na data prevista;
-// - competência em andamento usa os dias previstos (marcados + sugeridos de hoje em diante);
+// - um recebimento por item da OC, no valor fixo do item, na data de pagamento real; se ainda não pago,
+//   na data prevista (emissão prevista na janela 15–20 + prazo, passando para o próximo dia útil);
 // - DAS, gastos fixos e parcelas são considerados pagos no vencimento;
 // - gastos lançados entram na data do lançamento;
 // - a estimativa mensal de gastos (soma de `estimativas`) é um PISO do mês: no último dia de cada mês
@@ -20,28 +20,31 @@ import { ocorrenciasFixo, ocorrenciasParcelamento, gastoConhecidoNoMes, totalEst
 export const CAIXA_PADRAO = Object.freeze({
   saldoEm: null,
   reservaMinimaCentavos: 100000,
-  horizonte: '2027-03',
+  horizonte: '2027-06', // o último item da OC é pago por volta de maio
 });
 
-/** Valor de uma competência: o medido, se o boletim já saiu; senão o previsto. */
-function valorDaCompetencia(linha) {
-  return linha.medicao.estado === 'trabalhando' ? linha.valorPrevistoCentavos : linha.valorCentavos;
-}
-
-/** Recebimentos do contrato, um por competência com valor. */
+/**
+ * Recebimentos da OC, um por item: { data, maisCedo, maisTarde, valorCentavos, competencia (mês do item), … }.
+ * maisCedo/maisTarde: intervalo do pagamento conforme a NF saia no início ou no fim da janela.
+ */
 export function recebimentos(estado, hoje) {
   const { contrato, feriados, marcas, medicoes } = estado;
   return linhaDoTempo({ contrato, feriados, marcas, medicoes }, hoje)
-    .filter((l) => valorDaCompetencia(l) > 0)
+    .filter((l) => l.valorCentavos > 0)
     .map((l) => ({
       data: l.datas.pagamento.data,
-      valorCentavos: valorDaCompetencia(l),
+      maisCedo: l.datas.pagamento.real ? l.datas.pagamento.data : l.datas.pagamento.maisCedo,
+      maisTarde: l.datas.pagamento.real ? l.datas.pagamento.data : l.datas.pagamento.maisTarde,
+      valorCentavos: l.valorCentavos,
       competencia: l.mes,
+      item: l.item.n,
       real: l.datas.pagamento.real,
       previsto: l.medicao.estado === 'trabalhando',
-      descricao: `Recebimento PJ · competência ${l.mes}`,
+      perdida: l.datas.perdida,
+      descricao: `Recebimento PJ · item ${l.item.n} da OC`,
       origem: 'pj',
-    }));
+    }))
+    .sort((a, b) => a.data.localeCompare(b.data));
 }
 
 /** Ocorrências de um gasto fixo mensal entre dois meses, como saídas de caixa. */
@@ -122,11 +125,11 @@ export function saldoAtual(estado, hoje) {
   return saldoInformado(estado) + extra;
 }
 
-/** Competência × caixa por mês: o que foi ganho (trabalhado) e o que efetivamente entra. */
+/** Competência × caixa por mês: o valor do item do mês (fixo) e o que efetivamente entra na conta. */
 export function competenciaVsCaixa(estado, hoje) {
   const recs = recebimentos(estado, hoje);
   if (!recs.length) return [];
-  const primeiro = recs[0].competencia;
+  const primeiro = recs.map((r) => r.competencia).sort()[0];
   const ultimo = [...recs.map((r) => mesDe(r.data)), estado.caixa.horizonte].sort().at(-1);
   return intervaloMeses(primeiro, ultimo).map((mes) => ({
     mes,
@@ -138,30 +141,33 @@ export function competenciaVsCaixa(estado, hoje) {
 }
 
 /**
- * Simulador "e se": muda o prazo de pagamento e/ou os dias por semana (só para os dias futuros
- * ainda não marcados) e devolve o saldo no fim do `mesAlvo`.
- * diasPorSemana usa os primeiros N dias da semana do contrato (ex.: ter e qua para 2).
+ * Simulador "e se": muda o prazo de pagamento, o dia de emissão dentro da janela (15–20) e/ou a base
+ * de contagem (só para as notas ainda não emitidas) e devolve o saldo no fim do `mesAlvo`.
+ * Dias por semana não mudam a receita: o valor de cada item da OC é fixo.
  */
-export function simular(estado, hoje, { prazoPagamentoDias, diasPorSemana }, mesAlvo) {
+export function simular(estado, hoje, { prazoPagamentoDias, diaEmissao, basePrazo }, mesAlvo) {
   const contrato = { ...estado.contrato };
   if (prazoPagamentoDias != null) contrato.prazoPagamentoDias = prazoPagamentoDias;
-  if (diasPorSemana != null) contrato.diasSemana = [...estado.contrato.diasSemana].sort().slice(0, diasPorSemana);
+  if (diaEmissao != null) contrato.diaEmissaoPrevisto = diaEmissao;
+  if (basePrazo) contrato.basePrazo = basePrazo;
   const proj = projecao({ ...estado, contrato }, hoje);
   return saldoNoFimDe(proj, mesAlvo);
 }
 
-/** Grade do simulador: prazos × dias por semana, com a diferença para o cenário atual. */
-export function gradeSimulador(estado, hoje, mesAlvo, prazos = [15, 30, 45], dias = [2, 3]) {
+/** Grade do simulador: prazos × dia de emissão, numa base de contagem, com a diferença para o cenário atual. */
+export function gradeSimulador(estado, hoje, mesAlvo, {
+  prazos = [15, 30, 45, 60], dias = [estado.contrato.nfDiaAbre, estado.contrato.nfDiaLimite], basePrazo = estado.contrato.basePrazo,
+} = {}) {
   const atual = saldoNoFimDe(projecao(estado, hoje), mesAlvo);
   return {
     atual,
+    basePrazo,
     linhas: prazos.map((prazo) => ({
       prazo,
       celulas: dias.map((d) => {
-        const saldo = simular(estado, hoje, { prazoPagamentoDias: prazo, diasPorSemana: d }, mesAlvo);
-        return { dias: d, saldo, diferenca: saldo == null || atual == null ? null : saldo - atual };
+        const saldo = simular(estado, hoje, { prazoPagamentoDias: prazo, diaEmissao: d, basePrazo }, mesAlvo);
+        return { dia: d, saldo, diferenca: saldo == null || atual == null ? null : saldo - atual };
       }),
     })),
   };
 }
-
