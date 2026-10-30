@@ -117,7 +117,8 @@ function avisoOC(contrato) {
       <div>
         <strong>Falta ${falta}</strong>
         A NFS-e precisa do número da OC e do item enumerado como no documento; sem isso a descrição sai com “[PENDENTE]”.
-        Preencha abaixo, no cartão da nota fiscal (fica só neste aparelho).
+        Preencha no cartão da nota fiscal ou em Ajustes → Ordem de Compra (fica só neste aparelho).
+        <div class="acoes"><button type="button" class="btn btn-pequeno" data-acao="irParaNF">Preencher agora</button></div>
       </div>
     </div>`;
 }
@@ -457,6 +458,12 @@ export const acoes = {
     const e = ctx.estado;
     const ok = await copiarTexto(textoNF(mesSelecionado(ctx), { contrato: e.contrato }));
     ctx.avisar(ok ? 'Descrição da NF copiada.' : 'Não foi possível copiar.', !ok);
+  },
+
+  irParaNF() {
+    const alvo = document.getElementById('t-nf');
+    alvo?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => document.getElementById('numero-oc')?.focus({ preventScroll: true }), 400);
   },
 
   carregarExemplo: (el, ev, ctx) => ctx.carregarExemplo(),
