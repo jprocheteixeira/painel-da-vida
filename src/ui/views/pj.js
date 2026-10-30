@@ -14,6 +14,7 @@ import {
   ESTADOS, indiceEstado, novaMedicao, proximoEstado, avancar, voltar, datasChave, resumoMedicao,
   textoBoletim, textoNF, diasAteReceber, periodoDaMedicao,
 } from '../../dominio/medicao.js';
+import { formatarCnpj } from '../../utils/documentos.js';
 import { html, icone, copiarTexto } from '../util.js';
 
 const CABECALHO_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -432,7 +433,8 @@ export const acoes = {
   },
 
   campoContrato(el, ev, ctx) {
-    ctx.atualizar((e) => { e.contrato[el.dataset.campo] = el.value.trim(); }, { aviso: 'Salvo.' });
+    const valor = el.dataset.campo === 'cnpjTomador' ? formatarCnpj(el.value) : el.value.trim();
+    ctx.atualizar((e) => { e.contrato[el.dataset.campo] = valor; }, { aviso: 'Salvo.' });
   },
 
   numeroNF(el, ev, ctx) {

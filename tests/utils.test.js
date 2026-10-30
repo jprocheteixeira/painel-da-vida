@@ -51,3 +51,12 @@ test('lê valores digitados sem usar float', () => {
   assert.equal(lerReais(''), null);
   assert.equal(lerReais('1,2,3'), null);
 });
+
+test('CNPJ digitado só com números ganha pontos, barra e traço', async () => {
+  const { formatarCnpj } = await import('../src/utils/documentos.js');
+  assert.equal(formatarCnpj('00000000000100'), '00.000.000/0001-00');
+  assert.equal(formatarCnpj(' 00.000.000/0001-00 '), '00.000.000/0001-00');
+  assert.equal(formatarCnpj('00 000 000 0001 00'), '00.000.000/0001-00');
+  assert.equal(formatarCnpj('123'), '123'); // incompleto: fica como está
+  assert.equal(formatarCnpj(''), '');
+});
