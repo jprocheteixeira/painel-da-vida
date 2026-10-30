@@ -3,6 +3,7 @@
 import { formatarData, ehDataISO, nomeSemana } from '../../utils/datas.js';
 import { formatarReais, lerReais, centavosParaCampo } from '../../utils/dinheiro.js';
 import { estimativaContrato } from '../../dominio/contrato.js';
+import { BASES_PRAZO, gerarItens, itensDaOC, totalDaOC } from '../../dominio/oc.js';
 import { TIPOS_FERIADO } from '../../dominio/feriados.js';
 import { html, icone } from '../util.js';
 import { faixaExemplo } from './pj.js';
@@ -22,6 +23,7 @@ export function render(ctx) {
     <div class="grade grade-2">
       <div class="grade">
         ${html.cru(cartaoContrato(estado))}
+        ${html.cru(cartaoOC(estado))}
         ${html.cru(cartaoPerfil(estado))}
       </div>
       <div class="grade">
@@ -61,10 +63,7 @@ function cartaoContrato(estado) {
     <section class="cartao" aria-labelledby="t-contrato">
       <h2 id="t-contrato">Contrato PJ</h2>
       <div class="campos">
-        <div class="campos campos-2">
-          ${html.cru(campoTexto('Valor por dia (R$)', 'c-valor', centavosParaCampo(c.valorDiaCentavos), 'type="text" inputmode="decimal" data-ao-mudar="campo" data-alvo="contrato.valorDiaCentavos" data-tipo="dinheiro"'))}
-          ${html.cru(campoTexto('Teto de dias por semana', 'c-teto', c.tetoSemanal, 'type="number" min="1" max="7" data-ao-mudar="campo" data-alvo="contrato.tetoSemanal" data-tipo="inteiro"'))}
-        </div>
+        ${html.cru(campoTexto('Teto de dias presenciais por semana', 'c-teto', c.tetoSemanal, 'type="number" min="1" max="7" data-ao-mudar="campo" data-alvo="contrato.tetoSemanal" data-tipo="inteiro"', 'O calendário avisa quando passar.'))}
         <fieldset class="campo" style="border:0;padding:0;margin:0">
           <legend class="rotulo" style="margin-bottom:6px">Dias da semana sugeridos</legend>
           <div class="dias-semana">${html.cru(chips)}</div>
@@ -73,16 +72,62 @@ function cartaoContrato(estado) {
           ${html.cru(campoTexto('Início', 'c-inicio', c.inicio, 'type="date" data-ao-mudar="campo" data-alvo="contrato.inicio" data-tipo="data"'))}
           ${html.cru(campoTexto('Fim', 'c-fim', c.fim, 'type="date" data-ao-mudar="campo" data-alvo="contrato.fim" data-tipo="data"'))}
         </div>
+        ${html.cru(campoTexto('Aviso de rescisão (dias)', 'c-aviso', c.avisoRescisaoDias, 'type="number" min="0" max="365" data-ao-mudar="campo" data-alvo="contrato.avisoRescisaoDias" data-tipo="inteiro"'))}
+      </div>
+      ${html.cru(est ? html`<p class="destaque-espera">Dias sugeridos no contrato, já sem feriados:
+        <strong class="num">${est.dias} dias</strong> (só informação: o valor vem dos itens da OC).</p>` : '')}
+    </section>`;
+}
+
+function cartaoOC(estado) {
+  const c = estado.contrato;
+  const itens = itensDaOC(c);
+  const linhas = itens.map((item, i) => html`<tr>
+    <th scope="row">Item ${item.n}</th>
+    <td><label class="visualmente-oculto" for="oc-despacho-${i}">Data para despacho do item ${item.n}</label>
+      <input type="date" id="oc-despacho-${i}" value="${item.despacho}" data-ao-mudar="itemOC" data-n="${item.n}" data-campo="despacho"></td>
+    <td><label class="visualmente-oculto" for="oc-valor-${i}">Valor do item ${item.n}</label>
+      <input type="text" inputmode="decimal" id="oc-valor-${i}" value="${centavosParaCampo(item.valorCentavos)}" data-ao-mudar="itemOC" data-n="${item.n}" data-campo="valor"></td>
+    <td><button type="button" class="btn btn-icone btn-fantasma btn-pequeno" data-acao="removerItemOC" data-n="${item.n}" aria-label="Remover item ${item.n}">${html.cru(icone('lixo'))}</button></td>
+  </tr>`);
+  const bases = Object.entries(BASES_PRAZO).map(([id, nome]) => `<option value="${id}" ${id === c.basePrazo ? 'selected' : ''}>${nome}</option>`).join('');
+  return html`
+    <section class="cartao" aria-labelledby="t-oc">
+      <h2 id="t-oc">Ordem de Compra</h2>
+      <p class="subtitulo">Nº da OC, código do item, CNPJ do tomador e e-mails ficam em Trabalho PJ → Nota fiscal. Nada disso sai deste aparelho.</p>
+      <div class="campos">
+        ${html.cru(campoTexto('Data de entrada da OC', 'oc-entrada', c.dataEntradaOC, 'type="date" data-ao-mudar="campo" data-alvo="contrato.dataEntradaOC" data-tipo="data"'))}
+        ${html.cru(itens.length ? html`<div class="tabela-rolagem"><table class="tabela tabela-itens">
+          <thead><tr><th scope="col">Item</th><th scope="col">Data para despacho</th><th scope="col">Valor (R$)</th><th scope="col"><span class="visualmente-oculto">Remover</span></th></tr></thead>
+          <tbody>${html.cru(linhas)}</tbody>
+        </table></div>
+        <p class="destaque-espera">${itens.length} ${itens.length === 1 ? 'item' : 'itens'} · total <strong class="num">${formatarReais(totalDaOC(c))}</strong>
+          · entrega final ${formatarData(itens.at(-1).despacho)}</p>` : '<p class="vazio">Nenhum item cadastrado.</p>')}
+        <details class="secao" ${html.cru(itens.length ? '' : 'open')}>
+          <summary>${itens.length ? 'Gerar os itens de novo' : 'Gerar os itens da OC'}</summary>
+          <form class="campos campos-3" style="margin-top:8px" data-ao-enviar="gerarItensOC">
+            <label class="campo"><span>Quantidade</span><input type="number" name="quantidade" min="1" max="36" value="${itens.length || 6}" required></label>
+            <label class="campo"><span>Valor de cada item (R$)</span><input type="text" inputmode="decimal" name="valor" value="${itens.length ? centavosParaCampo(itens[0].valorCentavos) : ''}" required></label>
+            <label class="campo"><span>1º despacho</span><input type="date" name="primeiro" value="${itens[0]?.despacho || ''}" required></label>
+            <div class="linha-acoes"><button class="btn" type="submit">${html.cru(icone('mais'))} Gerar itens mensais</button></div>
+          </form>
+        </details>
         <div class="campos campos-3">
-          ${html.cru(campoTexto('Prazo de pagamento (dias)', 'c-prazo', c.prazoPagamentoDias, 'type="number" min="0" max="180" data-ao-mudar="campo" data-alvo="contrato.prazoPagamentoDias" data-tipo="inteiro"', 'Corridos, a partir da emissão da NF.'))}
-          ${html.cru(campoTexto('Dia de corte', 'c-corte', c.diaCorte, 'type="number" min="0" max="31" data-ao-mudar="campo" data-alvo="contrato.diaCorte" data-tipo="inteiro"', '0 = mês inteiro.'))}
-          ${html.cru(campoTexto('Aviso de rescisão (dias)', 'c-aviso', c.avisoRescisaoDias, 'type="number" min="0" max="365" data-ao-mudar="campo" data-alvo="contrato.avisoRescisaoDias" data-tipo="inteiro"'))}
+          ${html.cru(campoTexto('NF: janela abre no dia', 'oc-abre', c.nfDiaAbre, 'type="number" min="1" max="28" data-ao-mudar="campo" data-alvo="contrato.nfDiaAbre" data-tipo="inteiro"'))}
+          ${html.cru(campoTexto('NF: último dia', 'oc-limite', c.nfDiaLimite, 'type="number" min="1" max="28" data-ao-mudar="campo" data-alvo="contrato.nfDiaLimite" data-tipo="inteiro"', 'Depois dele a nota é recusada.'))}
+          ${html.cru(campoTexto('Previsão: emitir no dia', 'oc-dia-emissao', c.diaEmissaoPrevisto, `type="number" min="${c.nfDiaAbre}" max="${c.nfDiaLimite}" data-ao-mudar="campo" data-alvo="contrato.diaEmissaoPrevisto" data-tipo="inteiro"`, 'Usado na projeção de caixa.'))}
         </div>
-        <label class="campo"><span>Descrição do serviço (início do texto da NFS-e)</span>
+        <div class="campos campos-2">
+          ${html.cru(campoTexto('Prazo de pagamento (dias)', 'c-prazo', c.prazoPagamentoDias, 'type="number" min="0" max="180" data-ao-mudar="campo" data-alvo="contrato.prazoPagamentoDias" data-tipo="inteiro"', 'Corridos (DDL); cai no próximo dia útil.'))}
+          <div class="campo"><label for="oc-base">Base de contagem${c.basePrazoConfirmada ? '' : ' (a confirmar)'}</label>
+            <select id="oc-base" data-ao-mudar="campo" data-alvo="contrato.basePrazo">${html.cru(bases)}</select>
+            <label class="interruptor" style="margin-top:6px"><input type="checkbox" id="oc-base-ok" ${html.cru(c.basePrazoConfirmada ? 'checked' : '')} data-ao-mudar="basePrazoConfirmada">Confirmada com Compras</label>
+          </div>
+        </div>
+        ${html.cru(campoTexto('Forma de pagamento', 'oc-forma', c.formaPagamento, 'type="text" data-ao-mudar="campo" data-alvo="contrato.formaPagamento"', 'Não aceita factoring.'))}
+        <label class="campo"><span>Descrição do serviço (texto da NFS-e, depois de “OC – Item – código”)</span>
           <textarea id="c-descricao" data-ao-mudar="campo" data-alvo="contrato.descricaoServico">${c.descricaoServico}</textarea></label>
       </div>
-      ${html.cru(est ? html`<p class="destaque-espera">Estimativa pelos dias sugeridos, já sem feriados:
-        <strong class="num">${est.dias} dias = ${formatarReais(est.centavos)}</strong>.</p>` : '')}
     </section>`;
 }
 
@@ -181,7 +226,53 @@ export const acoes = {
       ctx.avisar('O fim do contrato não pode ser antes do início.', true);
       return;
     }
+    const janela = { ...ctx.estado.contrato, [el.dataset.alvo.split('.')[1]]: valor };
+    if (janela.nfDiaAbre > janela.nfDiaLimite) {
+      ctx.avisar('O dia em que a janela da NF abre não pode ser depois do último dia.', true);
+      return;
+    }
     ctx.atualizar((e) => definir(e, el.dataset.alvo, valor), { aviso: 'Salvo.' });
+  },
+
+  basePrazoConfirmada(el, ev, ctx) {
+    ctx.atualizar((e) => { e.contrato.basePrazoConfirmada = el.checked; }, { aviso: 'Salvo.' });
+  },
+
+  gerarItensOC(form, ev, ctx) {
+    const quantidade = Number(form.elements.quantidade.value);
+    const valorCentavos = lerReais(form.elements.valor.value);
+    const primeiroDespacho = form.elements.primeiro.value;
+    if (!Number.isInteger(quantidade) || quantidade < 1 || valorCentavos == null || valorCentavos <= 0 || !ehDataISO(primeiroDespacho)) {
+      ctx.avisar('Preencha a quantidade, o valor (ex.: 1.234,56) e a data do 1º despacho.', true);
+      return;
+    }
+    if (ctx.estado.contrato.itensOC.length && !confirm('Substituir os itens atuais da OC? As medições já registradas continuam guardadas.')) return;
+    ctx.atualizar((e) => { e.contrato.itensOC = gerarItens({ quantidade, valorCentavos, primeiroDespacho }); },
+      { aviso: `${quantidade} itens gerados.` });
+  },
+
+  itemOC(el, ev, ctx) {
+    const n = Number(el.dataset.n);
+    let valor;
+    if (el.dataset.campo === 'valor') {
+      valor = lerReais(el.value);
+      if (valor == null || valor < 0) { el.setAttribute('aria-invalid', 'true'); ctx.avisar('Valor inválido.', true); return; }
+    } else {
+      valor = el.value;
+      if (!ehDataISO(valor)) { ctx.avisar('Data inválida.', true); return; }
+      const outro = ctx.estado.contrato.itensOC.find((i) => i.n !== n && i.despacho.slice(0, 7) === valor.slice(0, 7));
+      if (outro) { ctx.avisar(`O item ${outro.n} já é desse mês: um item por mês.`, true); return; }
+    }
+    ctx.atualizar((e) => {
+      const item = e.contrato.itensOC.find((i) => i.n === n);
+      if (el.dataset.campo === 'valor') item.valorCentavos = valor; else item.despacho = valor;
+    }, { aviso: 'Salvo.' });
+  },
+
+  removerItemOC(el, ev, ctx) {
+    const n = Number(el.dataset.n);
+    if (!confirm(`Remover o item ${n} da OC?`)) return;
+    ctx.atualizar((e) => { e.contrato.itensOC = e.contrato.itensOC.filter((i) => i.n !== n); }, { aviso: 'Item removido.' });
   },
 
   diaSemana(el, ev, ctx) {

@@ -1,34 +1,36 @@
-// Trabalho PJ: calendário de dias, etapas da medição, datas, boletim e NFS-e.
+// Trabalho PJ: item da OC do mês, calendário de dias (informativo), etapas, datas, boletim e NFS-e.
 
 import {
-  ehMesISO, mesDe, somarMeses, nomeMes, inicioSemana, somarDias, intervaloDias, formatarData,
+  ehMesISO, mesDe, nomeMes, inicioSemana, somarDias, intervaloDias, formatarData,
   dataPorExtenso, diaDaSemana, rotuloCompetencia, nomeSemana,
 } from '../../utils/datas.js';
 import { formatarReais } from '../../utils/dinheiro.js';
 import {
-  situacaoDia, proximaMarca, marcarDia, ehDiaSugerido, periodoCompetencia, contagemPorSemana,
-  competenciasDoContrato, competenciaDoDia, DIA, diasPrevistos,
+  situacaoDia, proximaMarca, marcarDia, ehDiaSugerido, contagemPorSemana, DIA, diasPrevistos,
 } from '../../dominio/contrato.js';
+import { mesesDaOC, itemDoDia, itemDoMes, BASES_PRAZO_FRASE } from '../../dominio/oc.js';
 import { feriadoEm } from '../../dominio/feriados.js';
 import {
   ESTADOS, indiceEstado, novaMedicao, proximoEstado, avancar, voltar, datasChave, resumoMedicao,
-  textoBoletim, textoNF, diasAteReceber,
+  textoBoletim, textoNF, diasAteReceber, periodoDaMedicao,
 } from '../../dominio/medicao.js';
 import { html, icone, copiarTexto } from '../util.js';
 
 const CABECALHO_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-/** Mês exibido: o da rota; senão o atual, limitado ao período do contrato. */
+/** Mês do item que cobre hoje (ou o último item, se a OC já acabou). */
+function mesDoItemAtual(contrato, hoje) {
+  const meses = mesesDaOC(contrato);
+  if (!meses.length) return mesDe(hoje);
+  const item = itemDoDia(contrato, hoje);
+  return item ? mesDe(item.despacho) : meses.at(-1);
+}
+
+/** Mês exibido: o da rota; senão o do item atual da OC. */
 function mesSelecionado(ctx) {
   const pedido = ctx.rota.params[0];
   if (ehMesISO(pedido)) return pedido;
-  const { contrato } = ctx.estado;
-  const atual = competenciaDoDia(ctx.hoje, contrato.diaCorte);
-  const meses = competenciasDoContrato(contrato);
-  if (!meses.length) return atual;
-  if (atual < meses[0]) return meses[0];
-  if (atual > meses.at(-1)) return meses.at(-1);
-  return atual;
+  return mesDoItemAtual(ctx.estado.contrato, ctx.hoje);
 }
 
 const medicaoDe = (estado, mes) => estado.medicoes[mes] || novaMedicao(mes);
@@ -42,12 +44,14 @@ export function render(ctx) {
   const { contrato } = estado;
   const mes = mesSelecionado(ctx);
 
-  if (!contrato.inicio) {
+  const meses = mesesDaOC(contrato);
+  if (!contrato.inicio || !meses.length) {
     return html`
       <div class="cabecalho-pagina"><h1>Trabalho PJ</h1></div>
       <div class="cartao vazio-grande">
-        <h2>Configure o contrato para começar</h2>
-        <p class="subtitulo">Com a data de início, o valor por dia e os dias da semana, o app sugere os dias de trabalho e calcula todos os prazos.</p>
+        <h2>Configure o contrato e os itens da OC para começar</h2>
+        <p class="subtitulo">Com a data de início, os dias da semana e os itens da Ordem de Compra (data de despacho e valor),
+          o app sugere os dias de trabalho e calcula a janela da nota e o pagamento de cada item.</p>
         <div class="linha-acoes">
           <a class="btn btn-primario" href="#/ajustes">Configurar contrato</a>
           <button type="button" class="btn" data-acao="carregarExemplo">Ver com dados de exemplo</button>
@@ -56,45 +60,92 @@ export function render(ctx) {
   }
 
   const medicao = medicaoDe(estado, mes);
-  const datas = datasChave(mes, { contrato, feriados: estado.feriados, medicao });
+  const datas = datasChave(mes, { contrato, feriados: estado.feriados, medicao, hoje });
   const resumo = resumoMedicao(mes, { contrato, marcas: estado.marcas });
   const previstos = diasPrevistos(datas.periodo, estado.marcas, contrato, estado.feriados, hoje);
+  const anterior = meses.filter((m) => m < mes).at(-1);
+  const seguinte = meses.find((m) => m > mes);
+  const navegar = (alvo, rotulo, ic) => (alvo
+    ? html`<a class="btn btn-icone" href="#/pj/${alvo}" aria-label="${rotulo}">${html.cru(icone(ic))}</a>`
+    : html`<span class="btn btn-icone" aria-hidden="true" style="visibility:hidden">${html.cru(icone(ic))}</span>`);
 
-  return html`
+  const cabecalho = html`
     <div class="cabecalho-pagina">
       <div class="navegador-mes">
-        <a class="btn btn-icone" href="#/pj/${somarMeses(mes, -1)}" aria-label="Mês anterior">${html.cru(icone('esquerda'))}</a>
-        <h1><span>${nomeMes(mes)}</span></h1>
-        <a class="btn btn-icone" href="#/pj/${somarMeses(mes, 1)}" aria-label="Próximo mês">${html.cru(icone('direita'))}</a>
+        ${html.cru(navegar(anterior, 'Item anterior', 'esquerda'))}
+        <h1><span>${datas.item ? `Item ${datas.item.n} · ` : ''}${nomeMes(mes)}</span></h1>
+        ${html.cru(navegar(seguinte, 'Próximo item', 'direita'))}
       </div>
-      ${html.cru(mes !== competenciaDoDia(hoje, contrato.diaCorte)
-        ? html`<a class="btn btn-pequeno" href="#/pj">Ir para hoje</a>` : '')}
-    </div>
+      ${html.cru(mes !== mesDoItemAtual(contrato, hoje)
+        ? html`<a class="btn btn-pequeno" href="#/pj">Ir para o item atual</a>` : '')}
+    </div>`;
 
-    ${html.cru(avisoPedido(contrato))}
+  if (!datas.item) {
+    return html`${html.cru(cabecalho)}
+      <div class="cartao vazio-grande">
+        <h2>${nomeMes(mes)} não tem item na OC</h2>
+        <p class="subtitulo">Os itens da OC vão de ${nomeMes(meses[0])} a ${nomeMes(meses.at(-1))}.</p>
+        <div class="linha-acoes"><a class="btn btn-primario" href="#/pj">Ir para o item atual</a></div>
+      </div>`;
+  }
+
+  return html`
+    ${html.cru(cabecalho)}
+    ${html.cru(avisoOC(contrato))}
+    ${html.cru(faixaJanela(datas, medicao, hoje))}
     ${html.cru(estado.meta.exemplo ? faixaExemplo() : '')}
 
     <div class="grade grade-pj">
       <div class="col">
-        ${html.cru(cartaoCalendario(ctx, mes, datas.periodo, previstos))}
         ${html.cru(cartaoBoletim(ctx, mes, medicao, resumo))}
+        ${html.cru(cartaoCalendario(ctx, mes, datas.periodo, previstos, resumo.dias.length))}
       </div>
       <div class="col">
-        ${html.cru(cartaoEtapas(ctx, mes, medicao, resumo))}
-        ${html.cru(cartaoDatas(mes, datas, resumo, hoje, medicao))}
+        ${html.cru(cartaoEtapas(ctx, mes, medicao, datas))}
+        ${html.cru(cartaoDatas(contrato, datas, resumo, hoje, medicao))}
         ${html.cru(cartaoNF(ctx, mes, medicao))}
       </div>
     </div>`;
 }
 
-function avisoPedido(contrato) {
-  if (contrato.pedidoCompra) return '';
+function avisoOC(contrato) {
+  if (contrato.numeroOC && contrato.codigoItemOC) return '';
+  const falta = [!contrato.numeroOC && 'o nº da OC', !contrato.codigoItemOC && 'o código do item'].filter(Boolean).join(' e ');
   return html`
     <div class="faixa faixa-perigo" role="alert">
       ${html.cru(icone('alerta'))}
       <div>
-        <strong>Falta o nº do pedido de compra</strong>
-        Sem ele, a NFS-e sai com “[PENDENTE]”. Peça o número ao supervisor e preencha abaixo, no cartão da nota fiscal.
+        <strong>Falta ${falta}</strong>
+        A NFS-e precisa do número da OC e do item enumerado como no documento; sem isso a descrição sai com “[PENDENTE]”.
+        Preencha abaixo, no cartão da nota fiscal (fica só neste aparelho).
+      </div>
+    </div>`;
+}
+
+/** Alerta da janela da NF: perdida (vermelho) ou aberta agora (atenção). */
+function faixaJanela(datas, medicao, hoje) {
+  if (indiceEstado(medicao.estado) >= indiceEstado('nf_emitida')) return '';
+  const { item, janela, janelaItem, pagamento } = datas;
+  if (datas.perdida) {
+    return html`
+      <div class="faixa faixa-perigo" role="alert">
+        ${html.cru(icone('alerta'))}
+        <div>
+          <strong>Perdeu a janela: só no próximo mês</strong>
+          A NF do item ${item.n} não foi emitida até ${formatarData(janelaItem.limite)}. Nova janela:
+          <span class="num">${formatarData(janela.abre).slice(0, 5)} a ${formatarData(janela.limite)}</span>.
+          O recebimento passa para entre <strong class="num">${formatarData(pagamento.maisCedo)}</strong> e
+          <strong class="num">${formatarData(pagamento.maisTarde)}</strong>.
+        </div>
+      </div>`;
+  }
+  if (hoje < janela.abre || hoje > janela.limite) return '';
+  return html`
+    <div class="faixa faixa-alerta" role="status">
+      ${html.cru(icone('alerta'))}
+      <div>
+        <strong>Janela da NF do item ${item.n} aberta até ${formatarData(janela.limite)}</strong>
+        Nota emitida do dia ${Number(janela.limite.slice(8)) + 1} em diante é recusada.
       </div>
     </div>`;
 }
@@ -113,7 +164,7 @@ export function faixaExemplo() {
 
 // ---------- calendário ----------
 
-function cartaoCalendario(ctx, mes, periodo, previstos) {
+function cartaoCalendario(ctx, mes, periodo, previstos, marcados) {
   const { estado, hoje } = ctx;
   const { contrato, feriados, marcas } = estado;
   const porSemana = contagemPorSemana(marcas);
@@ -138,7 +189,7 @@ function cartaoCalendario(ctx, mes, periodo, previstos) {
       if (d === hoje) classes.push('dia--hoje');
       const rotuloSit = { trabalhado: 'trabalhado', folga: 'folga', sugerido: 'sugerido, não marcado' }[sit] || 'sem trabalho';
       const extra = feriado ? `, feriado: ${feriado.nome}` : '';
-      const marca = sit === 'trabalhado' ? 'R$' : sit === 'folga' ? 'folga' : feriado ? 'feriado' : '';
+      const marca = sit === 'trabalhado' ? '✓' : sit === 'folga' ? 'folga' : feriado ? 'feriado' : '';
       return html`<td><button type="button" class="${classes.join(' ')}" data-acao="alternarDia" data-dia="${d}"
         aria-pressed="${sit === 'trabalhado'}" aria-label="${dataPorExtenso(d)}: ${rotuloSit}${extra}"
         ${html.cru(feriado ? `title="${feriado.nome.replace(/"/g, '&quot;')}"` : '')}>
@@ -152,12 +203,14 @@ function cartaoCalendario(ctx, mes, periodo, previstos) {
 
   return html`
     <section class="cartao" aria-labelledby="t-cal">
-      <h2 id="t-cal">Dias trabalhados <span class="subtitulo num">${previstos.length} previstos</span></h2>
       ${html.cru(acima.length ? html`
         <div class="faixa faixa-alerta" role="alert">${html.cru(icone('alerta'))}
           <div><strong>Teto semanal ultrapassado</strong>
           ${acima.map((s) => `semana de ${formatarData(s)}: ${porSemana[s]} dias`).join('; ')} (teto: ${contrato.tetoSemanal}).</div>
         </div>` : '')}
+      <details class="secao" ${html.cru(marcados ? 'open' : '')}>
+      <summary><h2 id="t-cal">Dias de atividade <span class="subtitulo num">opcional · ${marcados ? `${marcados} marcados` : `${previstos.length} previstos`}</span></h2></summary>
+      <p class="subtitulo">Não precisa marcar: o valor do item é fixo. Se quiser, marque para listar os dias no boletim e acompanhar o limite de ${contrato.tetoSemanal} dias presenciais por semana.</p>
       <div class="legenda" aria-hidden="true">
         <span><i class="l-trab"></i>Trabalhado</span><span><i class="l-sug"></i>Sugerido</span>
         <span><i class="l-folga"></i>Folga</span><span><i class="l-fer"></i>Feriado</span>
@@ -173,12 +226,13 @@ function cartaoCalendario(ctx, mes, periodo, previstos) {
             ${html.cru(icone('check'))} Marcar ${pendentesPassados.length} dia(s) sugerido(s) que já passaram
           </button>
         </div>` : '')}
+      </details>
     </section>`;
 }
 
 // ---------- etapas ----------
 
-function cartaoEtapas(ctx, mes, medicao, resumo) {
+function cartaoEtapas(ctx, mes, medicao, datas) {
   const i = indiceEstado(medicao.estado);
   const prox = proximoEstado(medicao);
   const itens = ESTADOS.map((e, k) => {
@@ -191,20 +245,22 @@ function cartaoEtapas(ctx, mes, medicao, resumo) {
       <span class="etapa-data num">${data ? formatarData(data) : ''}</span>
     </li>`;
   });
-  const semDias = !resumo.dias.length && i === 0;
+  const vaiEmitir = prox?.id === 'nf_emitida';
+  const j = datas.janela;
   return html`
     <section class="cartao" aria-labelledby="t-etapas">
-      <h2 id="t-etapas">Etapas de ${rotuloCompetencia(mes)}</h2>
+      <h2 id="t-etapas">Etapas do item ${datas.item.n} · ${rotuloCompetencia(mes)}</h2>
       <ol class="etapas">${html.cru(itens)}</ol>
       ${html.cru(prox ? html`
         <form class="avancar" data-ao-enviar="avancarEtapa">
           <div class="avancar-linha">
             <label class="campo"><span>Data</span>
               <input type="date" name="data" id="data-etapa" value="${ctx.hoje}" required></label>
-            <button type="submit" class="btn btn-primario" ${html.cru(semDias ? 'disabled' : '')}>
-              ${html.cru(icone('check'))} ${prox.acao}</button>
+            <button type="submit" class="btn btn-primario">
+              ${html.cru(icone('check'))} ${prox.acao}${vaiEmitir ? ` (item ${datas.item.n})` : ''}</button>
           </div>
-          ${html.cru(semDias ? '<small class="subtitulo">Marque os dias trabalhados antes de enviar o boletim.</small>' : '')}
+          ${html.cru(vaiEmitir ? html`<small class="subtitulo">Só vale de ${formatarData(j.abre).slice(0, 5)} a ${formatarData(j.limite)}
+            (dia ${ctx.estado.contrato.nfDiaAbre} ao ${ctx.estado.contrato.nfDiaLimite}). Uma nota por item da OC.</small>` : '')}
         </form>` : '<p class="destaque-espera"><strong>Recebido.</strong> Esta competência está encerrada.</p>')}
       ${html.cru(i > 0 ? html`<div class="linha-acoes"><button type="button" class="btn btn-fantasma btn-pequeno" data-acao="voltarEtapa">
         ${html.cru(icone('desfazer'))} Desfazer “${ESTADOS[i].nome}”</button></div>` : '')}
@@ -222,19 +278,32 @@ function linhaData(rotulo, item, hoje, { prazo } = {}) {
     <small>${nomeSemana(item.data)}</small></dd></div>`;
 }
 
-function cartaoDatas(mes, datas, resumo, hoje, medicao) {
+function cartaoDatas(contrato, datas, resumo, hoje, medicao) {
   const espera = diasAteReceber(resumo.dias, datas);
   const pago = medicao.estado === 'pago';
+  const emitida = datas.emissaoNF.real;
+  const j = datas.janela;
+  const seloJanela = datas.perdida
+    ? '<span class="selo selo-atraso">perdida</span>'
+    : emitida ? '<span class="selo selo-real">emitida</span>' : hoje >= j.abre ? '<span class="selo selo-prev">aberta</span>' : '';
+  const intervalo = !datas.pagamento.real && datas.pagamento.maisCedo !== datas.pagamento.maisTarde;
   return html`
     <section class="cartao" aria-labelledby="t-datas">
       <h2 id="t-datas">Do trabalho ao dinheiro</h2>
       <dl class="datas">
-        <div><dt>Período</dt><dd class="num">${formatarData(datas.periodo.inicio).slice(0, 5)} a ${formatarData(datas.periodo.fim)}</dd></div>
-        ${html.cru(linhaData('Enviar boletim até', datas.envioBoletim, hoje, { prazo: true }))}
-        ${html.cru(linhaData('Aprovação até (5º dia útil)', datas.aprovacao, hoje, { prazo: true }))}
+        <div><dt>Período do item</dt><dd class="num">${formatarData(datas.periodo.inicio).slice(0, 5)} a ${formatarData(datas.periodo.fim)}</dd></div>
+        ${html.cru(linhaData('Enviar boletim e relatório até', datas.envioBoletim, hoje, { prazo: true }))}
+        ${html.cru(linhaData('Aprovação até', datas.aprovacao, hoje, { prazo: true }))}
+        <div><dt>Janela da NF${datas.perdida ? ' (nova)' : ''}</dt><dd><span class="num">${formatarData(j.abre).slice(0, 5)} a ${formatarData(j.limite)}</span>
+          ${html.cru(seloJanela)}<small>do dia 21 em diante a nota é recusada</small></dd></div>
         ${html.cru(linhaData('Emissão da NF', datas.emissaoNF, hoje))}
         ${html.cru(linhaData(pago ? 'Pago em' : 'Pagamento', datas.pagamento, hoje))}
+        ${html.cru(intervalo ? html`<div><dt>Intervalo do pagamento</dt><dd><span class="num">${formatarData(datas.pagamento.maisCedo)} a ${formatarData(datas.pagamento.maisTarde)}</span>
+          <small>emitindo no início ou no fim da janela</small></dd></div>` : '')}
       </dl>
+      <p class="subtitulo" style="margin-top:8px">Prazo: ${contrato.prazoPagamentoDias} DDL, contados
+        ${BASES_PRAZO_FRASE[contrato.basePrazo] || ''}${contrato.basePrazoConfirmada ? '' : ' (a confirmar)'}, passando para o próximo dia útil.
+        Pagamento por ${contrato.formaPagamento || 'DDA ou depósito bancário'}; não aceita factoring.</p>
       ${html.cru(espera != null ? html`<p class="destaque-espera">
         Do último dia trabalhado até o dinheiro na conta: <strong class="num">${espera} dias</strong>.</p>` : '')}
     </section>`;
@@ -250,10 +319,10 @@ function cartaoBoletim(ctx, mes, medicao, resumo) {
       <h2 id="t-boletim">Boletim de medição</h2>
       <div class="totais">
         <span class="grande">${formatarReais(resumo.valorCentavos)}</span>
-        <span class="num">${resumo.dias.length} ${resumo.dias.length === 1 ? 'dia' : 'dias'} × ${formatarReais(estado.contrato.valorDiaCentavos)}</span>
+        <span class="num">Item ${resumo.item.n} · valor fixo mensal da OC${resumo.dias.length ? ` · ${resumo.dias.length} ${resumo.dias.length === 1 ? 'dia marcado' : 'dias marcados'}` : ''}</span>
       </div>
-      <label class="campo"><span>Resumo das atividades</span>
-        <textarea id="resumo-atividades" data-ao-digitar="editarResumo" placeholder="O que você fez no mês (vai no texto do boletim)">${medicao.resumo}</textarea>
+      <label class="campo"><span>Relatório mensal de atividades</span>
+        <textarea id="resumo-atividades" data-ao-digitar="editarResumo" placeholder="O que você fez no período do item (vai no texto do boletim)">${medicao.resumo}</textarea>
       </label>
       <details class="secao" style="margin-top:12px">
         <summary>Texto do boletim</summary>
@@ -269,32 +338,37 @@ function cartaoBoletim(ctx, mes, medicao, resumo) {
 
 function cartaoNF(ctx, mes, medicao) {
   const { contrato } = ctx.estado;
-  const texto = textoNF(mes, { contrato, marcas: ctx.estado.marcas });
-  const faltaPedido = !contrato.pedidoCompra;
+  const texto = textoNF(mes, { contrato });
+  const n = itemDoMes(contrato, mes).n;
+  const assunto = encodeURIComponent(`NFS-e — OC ${contrato.numeroOC || ''} — Item ${n}`);
+  const campo = (rotulo, id, campoNome, tipo = 'text', extra = '') => html`<label class="campo"><span>${rotulo}</span>
+    <input type="${tipo}" id="${id}" value="${contrato[campoNome] || ''}" data-ao-mudar="campoContrato" data-campo="${campoNome}" ${html.cru(extra)}></label>`;
   return html`
     <section class="cartao" aria-labelledby="t-nf">
       <h2 id="t-nf">Nota fiscal (NFS-e)</h2>
       <div class="campos">
-        <label class="campo"><span>Nº do pedido de compra</span>
-          <input type="text" id="pedido-compra" inputmode="numeric" value="${contrato.pedidoCompra}"
-            data-ao-mudar="campoContrato" data-campo="pedidoCompra" ${html.cru(faltaPedido ? 'aria-invalid="true"' : '')}
-            aria-describedby="ajuda-pedido">
-          <small id="ajuda-pedido">${faltaPedido ? 'Obrigatório na descrição da nota.' : 'Vale para todos os meses do contrato.'}</small>
-        </label>
         <div class="campos campos-2">
-          <label class="campo"><span>Tomador</span>
-            <input type="text" id="tomador" value="${contrato.tomador}" data-ao-mudar="campoContrato" data-campo="tomador"></label>
-          <label class="campo"><span>E-mail de envio</span>
-            <input type="email" id="email-envio" value="${contrato.emailEnvio}" data-ao-mudar="campoContrato" data-campo="emailEnvio"></label>
+          ${html.cru(campo('Nº da OC', 'numero-oc', 'numeroOC', 'text', `inputmode="numeric" ${!contrato.numeroOC ? 'aria-invalid="true"' : ''}`))}
+          ${html.cru(campo('Código do item na OC', 'codigo-item-oc', 'codigoItemOC', 'text', !contrato.codigoItemOC ? 'aria-invalid="true"' : ''))}
         </div>
-        <label class="campo"><span>Nº da NFS-e emitida (${rotuloCompetencia(mes)})</span>
+        <small class="subtitulo">Valem para todos os itens. Ficam só neste aparelho (e nos backups).</small>
+        <div class="campos campos-2">
+          ${html.cru(campo('Tomador', 'tomador', 'tomador'))}
+          ${html.cru(campo('CNPJ do tomador (matriz)', 'cnpj-tomador', 'cnpjTomador', 'text', 'inputmode="numeric"'))}
+        </div>
+        <div class="campos campos-2">
+          ${html.cru(campo('E-mail do DANFSE (PDF)', 'email-danfse', 'emailDanfse', 'email'))}
+          ${html.cru(campo('E-mail do XML', 'email-xml', 'emailXml', 'email'))}
+        </div>
+        <label class="campo"><span>Nº da NFS-e emitida (item ${n})</span>
           <input type="text" id="numero-nf" value="${medicao.numeroNF}" data-ao-mudar="numeroNF"></label>
       </div>
-      <p class="rotulo" style="margin-top:12px">Descrição do serviço · competência ${rotuloCompetencia(mes)}</p>
+      <p class="rotulo" style="margin-top:12px">Descrição do serviço · item ${n} (Mês ${n})</p>
       <pre class="texto-pronto" id="texto-nf">${texto}</pre>
       <div class="linha-acoes">
         <button type="button" class="btn btn-primario" data-acao="copiarNF">${html.cru(icone('copiar'))} Copiar descrição</button>
-        ${html.cru(contrato.emailEnvio ? html`<a class="btn" href="mailto:${contrato.emailEnvio}?subject=${encodeURIComponent(`NFS-e — competência ${rotuloCompetencia(mes)}`)}">Abrir e-mail</a>` : '')}
+        ${html.cru(contrato.emailDanfse ? html`<a class="btn" href="mailto:${contrato.emailDanfse}?subject=${assunto}">E-mail do DANFSE (PDF)</a>` : '')}
+        ${html.cru(contrato.emailXml ? html`<a class="btn" href="mailto:${contrato.emailXml}?subject=${assunto}">E-mail do XML</a>` : '')}
       </div>
     </section>`;
 }
@@ -322,7 +396,7 @@ export const acoes = {
   marcarSugeridos(el, ev, ctx) {
     const mes = mesSelecionado(ctx);
     ctx.atualizar((e) => {
-      const p = periodoCompetencia(mes, e.contrato.diaCorte);
+      const p = periodoDaMedicao(mes, e.contrato);
       for (const d of intervaloDias(p.inicio, p.fim)) {
         if (d < ctx.hoje && situacaoDia(d, e.marcas, e.contrato, e.feriados) === 'sugerido') e.marcas[d] = DIA.TRABALHADO;
       }
@@ -333,7 +407,7 @@ export const acoes = {
     const mes = mesSelecionado(ctx);
     const data = form.elements.data.value;
     try {
-      const nova = avancar(medicaoDe(ctx.estado, mes), data);
+      const nova = avancar(medicaoDe(ctx.estado, mes), data, { contrato: ctx.estado.contrato, medicoes: ctx.estado.medicoes });
       atualizarMedicao(ctx, mes, () => nova, { aviso: `${ESTADOS[indiceEstado(nova.estado)].nome} em ${formatarData(data)}.` });
     } catch (erro) {
       ctx.avisar(erro.message, true);
@@ -361,7 +435,15 @@ export const acoes = {
   },
 
   numeroNF(el, ev, ctx) {
-    atualizarMedicao(ctx, mesSelecionado(ctx), (m) => ({ ...m, numeroNF: el.value.trim() }), { aviso: 'Salvo.' });
+    const mes = mesSelecionado(ctx);
+    const numero = el.value.trim();
+    const repetida = numero && Object.values(ctx.estado.medicoes).find((m) => m.mes !== mes && m.numeroNF === numero);
+    if (repetida) {
+      el.setAttribute('aria-invalid', 'true');
+      ctx.avisar(`A NFS-e ${numero} já está no item de ${rotuloCompetencia(repetida.mes)}: uma nota por item.`, true);
+      return;
+    }
+    atualizarMedicao(ctx, mes, (m) => ({ ...m, numeroNF: numero }), { aviso: 'Salvo.' });
   },
 
   async copiarBoletim(el, ev, ctx) {
@@ -373,7 +455,7 @@ export const acoes = {
 
   async copiarNF(el, ev, ctx) {
     const e = ctx.estado;
-    const ok = await copiarTexto(textoNF(mesSelecionado(ctx), { contrato: e.contrato, marcas: e.marcas }));
+    const ok = await copiarTexto(textoNF(mesSelecionado(ctx), { contrato: e.contrato }));
     ctx.avisar(ok ? 'Descrição da NF copiada.' : 'Não foi possível copiar.', !ok);
   },
 

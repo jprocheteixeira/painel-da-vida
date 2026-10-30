@@ -65,8 +65,8 @@ test('alerta de teto semanal', () => {
 });
 
 test('estimativa do contrato e competências', () => {
-  // 78 terças/quartas/quintas no período, menos o 09/12 (feriado municipal numa quarta) = 77
-  assert.deepEqual(estimativaContrato(contrato, feriados), { dias: 77, centavos: 1540000 });
+  // 78 terças/quartas/quintas no período, menos o 09/12 (feriado municipal numa quarta) = 77 (só informação)
+  assert.deepEqual(estimativaContrato(contrato, feriados), { dias: 77 });
   const meses = competenciasDoContrato(contrato);
   assert.equal(meses[0], '2026-10');
   assert.equal(meses.at(-1), '2027-04');

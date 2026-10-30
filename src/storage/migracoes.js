@@ -6,8 +6,10 @@ import { completarFeriados } from '../dominio/feriados.js';
 import { CAIXA_PADRAO } from '../dominio/caixa.js';
 import { MEI_PADRAO } from '../dominio/mei.js';
 import { categoriasPadrao, estimativasPadrao } from '../dominio/gastos.js';
+import { pendenciasPadrao } from '../dominio/pendencias.js';
+import { somarMeses } from '../utils/datas.js';
 
-export const VERSAO_ATUAL = 5;
+export const VERSAO_ATUAL = 6;
 export const ANOS_FERIADOS = [2026, 2027];
 
 export function contasPadrao() {
@@ -33,6 +35,7 @@ export function estadoInicial() {
     estimativas: estimativasPadrao(),
     dasPagos: {},
     dasTerceiros: {},
+    pendencias: pendenciasPadrao(),
     caixa: { ...CAIXA_PADRAO },
     mei: { ...MEI_PADRAO },
     meta: { ultimoBackup: null, exemplo: false },
@@ -63,7 +66,41 @@ const MIGRACOES = [
   },
   // 4 → 5: DAS pago com dinheiro de outra pessoa (não entra nos gastos, mas segue lembrado)
   (dados) => ({ ...dados, versao: 5, dasTerceiros: dados.dasTerceiros || {} }),
+  // 5 → 6: Ordem de Compra. Cobrança por item de valor fixo (não mais dias × valor); nº do pedido vira nº da OC,
+  // e-mail de envio vira e-mail do DANFSE; prazo 30 DDL; medição da competência M (trabalho de M, nota em M+1)
+  // passa para a chave do mês do item (M+1). Nada é apagado: o valor por dia e a competência antiga ficam guardados.
+  (dados) => {
+    const contrato = { ...(ehObjeto(dados.contrato) ? dados.contrato : {}) };
+    if ('pedidoCompra' in contrato) {
+      if (!contrato.numeroOC) contrato.numeroOC = contrato.pedidoCompra || '';
+      delete contrato.pedidoCompra;
+    }
+    if ('emailEnvio' in contrato) {
+      if (!contrato.emailDanfse) contrato.emailDanfse = contrato.emailEnvio || '';
+      delete contrato.emailEnvio;
+    }
+    if (contrato.descricaoServico === DESCRICAO_V5) delete contrato.descricaoServico; // volta ao padrão novo
+    if ('valorDiaCentavos' in contrato) {
+      contrato.valorDiaReferenciaCentavos = contrato.valorDiaCentavos;
+      delete contrato.valorDiaCentavos;
+    }
+    contrato.prazoPagamentoDias = 30;
+    const medicoes = {};
+    for (const [mes, m] of Object.entries(ehObjeto(dados.medicoes) ? dados.medicoes : {})) {
+      if (!/^\d{4}-\d{2}$/.test(mes)) { medicoes[mes] = m; continue; }
+      const novo = somarMeses(mes, 1);
+      medicoes[novo] = { ...m, mes: novo, competenciaOrigem: mes };
+    }
+    return {
+      ...dados, versao: 6, contrato, medicoes,
+      pendencias: Array.isArray(dados.pendencias) ? dados.pendencias : pendenciasPadrao(),
+    };
+  },
 ];
+
+/** Descrição padrão da NF até a v5 (trocada pela da OC se o usuário não tiver mudado). */
+const DESCRICAO_V5 = 'Preparação de documentos e apoio técnico-administrativo: '
+  + 'organização de bases de dados, cadastros e controles.';
 
 const ehObjeto = (v) => v && typeof v === 'object' && !Array.isArray(v);
 
@@ -84,6 +121,8 @@ function completar(dados) {
   if (!Array.isArray(d.lancamentos)) d.lancamentos = [];
   if (!Array.isArray(d.parcelamentos)) d.parcelamentos = [];
   if (!Array.isArray(d.estimativas)) d.estimativas = base.estimativas;
+  if (!Array.isArray(d.pendencias)) d.pendencias = base.pendencias;
+  if (!Array.isArray(d.contrato.itensOC)) d.contrato.itensOC = [];
   // acrescenta os padrões só de anos que ainda não têm nenhum feriado (respeita exclusões)
   const anosComFeriado = new Set(d.feriados.map((f) => Number(f.data.slice(0, 4))));
   const faltando = ANOS_FERIADOS.filter((a) => !anosComFeriado.has(a));

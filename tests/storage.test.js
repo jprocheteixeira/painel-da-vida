@@ -9,9 +9,54 @@ test('migra dados sem versão e completa padrões', () => {
   assert.equal(d.versao, VERSAO_ATUAL);
   assert.equal(d.perfil.nome, 'Fulano');
   assert.equal(d.perfil.cnpj, '');
-  assert.equal(d.contrato.valorDiaCentavos, 20000);
+  assert.equal(d.contrato.prazoPagamentoDias, 30);
+  assert.equal(d.contrato.nfDiaLimite, 20);
+  assert.deepEqual(d.contrato.itensOC, []);
   assert.ok(d.feriados.length > 20);
   assert.deepEqual(d.marcas, { '2026-10-14': 'trabalhado' });
+});
+
+test('migração v5 → v6 (Ordem de Compra) não perde dados', () => {
+  const descricaoV5 = 'Preparação de documentos e apoio técnico-administrativo: '
+    + 'organização de bases de dados, cadastros e controles.';
+  const v5 = {
+    versao: 5,
+    perfil: { nome: 'Fulano', cnpj: '00.000.000/0001-00', aberturaMei: '2026-10-03' },
+    contrato: { valorDiaCentavos: 20000, diasSemana: [2, 3, 4], tetoSemanal: 3, inicio: '2026-10-13', fim: '2027-04-13',
+      prazoPagamentoDias: 60, diaCorte: 0, pedidoCompra: '1234567', tomador: 'Empresa (fictícia)',
+      emailEnvio: 'nf@exemplo.invalid', descricaoServico: descricaoV5 },
+    marcas: { '2026-10-13': 'trabalhado', '2026-10-14': 'folga' },
+    medicoes: { '2026-10': { mes: '2026-10', estado: 'boletim_enviado', historico: { boletim_enviado: '2026-10-30' },
+      resumo: 'Relatório de outubro.', numeroNF: '' } },
+    lancamentos: [{ id: 'g1', data: '2026-10-20', valorCentavos: 1500, categoriaId: 'mercado', nota: '' }],
+    dasPagos: { '2026-10': '2026-11-19' },
+    dasTerceiros: { '2026-10': { quem: 'Pai', pedidoEm: null } },
+    caixa: { saldoEm: '2026-10-20', reservaMinimaCentavos: 100000, horizonte: '2027-06' },
+    meta: { ultimoBackup: '2026-10-30', exemplo: false },
+  };
+  const d = migrar(structuredClone(v5));
+  assert.equal(d.versao, 6);
+  assert.equal(d.contrato.numeroOC, '1234567');
+  assert.equal(d.contrato.emailDanfse, 'nf@exemplo.invalid');
+  assert.ok(!('pedidoCompra' in d.contrato) && !('emailEnvio' in d.contrato));
+  assert.equal(d.contrato.prazoPagamentoDias, 30);
+  assert.equal(d.contrato.basePrazo, 'emissao');
+  assert.equal(d.contrato.basePrazoConfirmada, false);
+  assert.equal(d.contrato.valorDiaReferenciaCentavos, 20000); // guardado, mas não multiplica mais nada
+  assert.match(d.contrato.descricaoServico, /^Contratação de serviço técnico/);
+  assert.equal(d.contrato.tomador, 'Empresa (fictícia)');
+  // a medição de outubro (nota em novembro) vira a do item de novembro
+  assert.deepEqual(Object.keys(d.medicoes), ['2026-11']);
+  assert.equal(d.medicoes['2026-11'].estado, 'boletim_enviado');
+  assert.equal(d.medicoes['2026-11'].resumo, 'Relatório de outubro.');
+  assert.equal(d.medicoes['2026-11'].competenciaOrigem, '2026-10');
+  for (const chave of ['perfil', 'marcas', 'lancamentos', 'dasPagos', 'dasTerceiros', 'caixa', 'meta']) {
+    assert.deepEqual(d[chave], v5[chave], chave);
+  }
+  assert.ok(d.pendencias.length > 5);
+  // descrição personalizada é mantida
+  assert.equal(migrar({ ...structuredClone(v5), contrato: { descricaoServico: 'Minha descrição' } }).contrato.descricaoServico,
+    'Minha descrição');
 });
 
 test('não traz de volta feriado apagado pelo usuário', () => {

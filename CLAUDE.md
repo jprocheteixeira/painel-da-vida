@@ -31,7 +31,7 @@ porque este repositório é público. Ler esse arquivo no início da sessão, se
 ```
 index.html · css/estilo.css · package.json
 src/utils/      datas.js, dinheiro.js
-src/dominio/    feriados.js, calendario.js, contrato.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js, agenda.js
+src/dominio/    feriados.js, calendario.js, contrato.js, oc.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js, agenda.js, pendencias.js
 src/storage/    migracoes.js, repositorio.js, backup.js, exemplo.js (seed fictício)
 src/ui/         app.js (rotas, eventos, salvamento, dicas), util.js, graficos.js, views/{painel,pj,caixa,gastos,ajustes}.js
 tests/          *.test.js (node --test) + index.html e navegador/ (rodar no navegador)
@@ -90,12 +90,26 @@ privado/        (fora do Git) meu-perfil.json
   7 dias antes do prazo ("Já pedi") e de pagar ("Paguei"). Tudo vai também para o .ics.
 - 2026-10-13: **Backup** lembrado no **último dia útil de cada mês** (junto com o boletim), escolha do usuário; aparece em
   "Próximos 14 dias" e no .ics. O app pede `navigator.storage.persist()` para o navegador não limpar os dados sozinho.
-- 2026-10-13: Usuário sem gastos próprios até receber (~10/12); depois vai assumir gastos que hoje são da mãe.
-  Projeção recomendada até jun/2027 (último pagamento do contrato cai ~junho).
+- 2026-10-13: Usuário sem gastos próprios até receber (1º item da OC: entre 15 e 21/12); depois vai assumir gastos que hoje são da mãe.
+  Projeção recomendada até jun/2027 (último item da OC é pago por volta de 17–20/05/2027).
+
+- 2026-10-30: **Ordem de Compra (schema v6)** substitui a cobrança por dia. A OC tem itens mensais de **valor fixo**
+  (`contrato.itensOC`: n, data de despacho, valor; gerados em Ajustes). Mês do item = mês do despacho; período do item =
+  dia seguinte ao despacho anterior até o despacho (o 1º começa no início do contrato, 13/10, mesmo com a OC de 15/10).
+  **Marcar dias é opcional** (só boletim/relatório e aviso de 3 dias presenciais por semana). **NFS-e só do dia 15 ao 20**
+  do mês do item (do 21 em diante é recusada; perdeu → janela do mês seguinte, alerta vermelho); uma nota por item.
+  Descrição: "OC [nº] – Item [n] – [código do item] – [descrição] – Mês [n]". Pagamento **30 DDL** + próximo dia útil,
+  por DDA ou depósito (sem factoring). Previsão usa emissão no dia 20 (conservador) e mostra o intervalo (dia 15–20).
+  Lembretes nos dias 15, 18 e 20; tarefa "Enviar aceite da OC" com texto pronto; checklist de pendências no Painel.
+  **Nº da OC, código do item, CNPJ do tomador e e-mails do DANFSE/XML só no app** (nunca no repositório).
+  Suposições minhas: boletim até o último dia útil até o despacho; aprovação até o dia 18. Migração v5→v6: pedidoCompra →
+  numeroOC, emailEnvio → emailDanfse, prazo 30, medição da competência M → mês do item M+1.
 
 ## Premissas a confirmar com o usuário/contador
 
-- Faturamento MEI conta pelo valor da NF (R$ 200/dia, incluindo deslocamento).
+- Faturamento MEI conta pelo valor da NF (valor fixo de cada item da OC).
+- Base de contagem dos 30 DDL (emissão, entrada da NF ou fim do mês): não está na OC; padrão "emissão", a confirmar com Compras.
+- Código do serviço da NFS-e combina com o CNAE do MEI (contador).
 - DAS da competência M vence em 20/M+1 (1º DAS: outubro/2026, vence 20/11/2026), R$ 86,05.
 - Limite proporcional no ano de abertura: R$ 6.750 × meses desde o mês de abertura (inclusive) → 2026 = R$ 20.250.
 

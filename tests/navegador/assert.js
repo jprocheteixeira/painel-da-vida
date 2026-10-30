@@ -27,6 +27,9 @@ const assert = {
   match(texto, regex, msg = 'texto não confere') {
     if (!regex.test(texto)) falhar(msg, texto, String(regex));
   },
+  doesNotMatch(texto, regex, msg = 'texto não deveria conferir') {
+    if (regex.test(texto)) falhar(msg, texto, `sem ${regex}`);
+  },
   throws(fn, padrao, msg = 'esperava um erro') {
     try { fn(); } catch (e) {
       if (padrao instanceof RegExp && !padrao.test(e.message)) falhar('mensagem de erro diferente', e.message, String(padrao));
