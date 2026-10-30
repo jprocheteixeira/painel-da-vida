@@ -5,7 +5,8 @@ import { gerarBackup, lerBackup, nomeArquivoBackup } from '../storage/backup.js'
 import { estadoInicial } from '../storage/migracoes.js';
 import { estadoDeExemplo } from '../storage/exemplo.js';
 import { hojeISO } from '../utils/datas.js';
-import { baixarArquivo } from './util.js';
+import { baixarArquivo, html, copiarTexto } from './util.js';
+import { PERGUNTAS, responder, resumoParaClaude } from '../dominio/assistente.js';
 import * as painel from './views/painel.js';
 import * as pj from './views/pj.js';
 import * as caixa from './views/caixa.js';
@@ -126,10 +127,63 @@ function acaoDe(el, atributo) {
   return view.acoes?.[nome];
 }
 
+// ---------- "?": perguntas prontas e "Perguntar ao Claude" ----------
+
+const dialogoAjuda = document.getElementById('ajuda');
+
+function renderAjuda(resposta) {
+  dialogoAjuda.innerHTML = html`
+    <div class="ajuda-topo">
+      <h2 id="ajuda-titulo">Tirar uma dúvida</h2>
+      <button type="button" class="btn btn-icone btn-fantasma" data-acao="fecharAjuda" aria-label="Fechar">✕</button>
+    </div>
+    <div class="ajuda-perguntas">${html.cru(PERGUNTAS.map((p) => html`<button type="button" class="chip-pergunta"
+      data-acao="perguntaAjuda" data-pergunta="${p.id}">${p.texto}</button>`))}</div>
+    <div class="ajuda-resposta" aria-live="polite">${html.cru(resposta ? html`
+      <h3>${resposta.titulo}</h3>
+      <ul>${html.cru(resposta.linhas.map((l) => html`<li>${l}</li>`))}</ul>
+      ${html.cru(resposta.ir ? html`<a class="btn btn-pequeno" href="${resposta.ir}" data-acao="fecharAjuda">Abrir no app</a>` : '')}`
+      : '<p class="subtitulo">Toque numa pergunta: a resposta sai dos seus dados, aqui no aparelho.</p>')}</div>
+    <form class="ajuda-claude" data-acao-form="perguntarClaude">
+      <label class="campo"><span>Outra dúvida? Pergunte ao Claude</span>
+        <textarea id="pergunta-claude" rows="2" placeholder="Ex.: como emito a minha primeira nota?"></textarea></label>
+      <button type="submit" class="btn btn-primario">Copiar resumo e abrir o Claude</button>
+      <small class="subtitulo">Copia um resumo dos seus prazos (sem CNPJ, e-mails nem nº da OC) com a sua pergunta.
+        No Claude, é só colar e enviar.</small>
+    </form>`;
+}
+
+async function perguntarClaude(form) {
+  const pergunta = form.querySelector('textarea').value;
+  // copia e abre no mesmo toque (o celular bloqueia abrir janela depois de esperar)
+  const copia = copiarTexto(resumoParaClaude(estado, ctx.hoje, pergunta));
+  window.open('https://claude.ai/new', '_blank', 'noopener');
+  const ok = await copia;
+  avisar(ok ? 'Resumo copiado. Cole no Claude e envie.' : 'Não foi possível copiar: tente de novo.', !ok);
+}
+
+dialogoAjuda.addEventListener('submit', (ev) => {
+  const form = ev.target.closest('form[data-acao-form="perguntarClaude"]');
+  if (!form) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  perguntarClaude(form);
+});
+dialogoAjuda.addEventListener('click', (ev) => {
+  if (ev.target === dialogoAjuda) dialogoAjuda.close(); // toque fora da janela
+});
+
 document.addEventListener('click', (ev) => {
   const el = ev.target.closest('[data-acao]');
   if (!el) return;
   const nome = el.dataset.acao;
+  if (nome === 'abrirAjuda') { renderAjuda(null); dialogoAjuda.showModal(); return; }
+  if (nome === 'fecharAjuda') { dialogoAjuda.close(); return; }
+  if (nome === 'perguntaAjuda') {
+    renderAjuda(responder(el.dataset.pergunta, estado, ctx.hoje));
+    dialogoAjuda.querySelector(`[data-pergunta="${el.dataset.pergunta}"]`)?.focus();
+    return;
+  }
   if (nome === 'exportar') { exportar(); return; }
   if (nome === 'tema') {
     const atual = lerTema();

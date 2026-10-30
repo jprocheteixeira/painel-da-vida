@@ -644,3 +644,30 @@ kbd { font-family: var(--mono); font-size: 0.78rem; padding: 1px 6px; border: 1p
 .lista-pendencias li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 6px 4px; border-bottom: 1px dashed var(--borda); }
 .lista-pendencias li.feita .p-texto { color: var(--texto-3); text-decoration: line-through; }
 .tabela-itens input { width: 100%; min-width: 120px; }
+
+/* ---------- "?" tirar dúvida ---------- */
+.fab-ajuda {
+  position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 40;
+  width: 52px; height: 52px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--acento); color: var(--sobre-acento, #fff); font: 700 1.5rem/1 inherit; box-shadow: var(--sombra), 0 6px 18px rgb(0 0 0 / 18%);
+}
+.fab-ajuda:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
+@media (max-width: 759px) { .fab-ajuda { bottom: 86px; width: 48px; height: 48px; } }
+@media print { .fab-ajuda { display: none; } }
+.ajuda {
+  width: min(560px, calc(100% - 24px)); max-height: min(86vh, 760px); padding: 18px; border: 1px solid var(--borda);
+  border-radius: 20px; background: var(--superficie); color: var(--texto); box-shadow: var(--sombra);
+}
+.ajuda::backdrop { background: rgb(0 0 0 / 35%); }
+.ajuda-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ajuda-topo h2 { margin: 0; font-size: 1.1rem; }
+.ajuda-perguntas { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-pergunta {
+  border: 1px solid var(--borda); background: var(--fundo); color: var(--texto); border-radius: 999px;
+  padding: 8px 12px; font: inherit; font-size: 0.9rem; cursor: pointer; text-align: left;
+}
+.chip-pergunta:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+.ajuda-resposta { margin: 14px 0; padding: 12px; border-radius: var(--raio-p); background: var(--fundo); }
+.ajuda-resposta h3 { margin: 0 0 6px; font-size: 1rem; }
+.ajuda-resposta ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 6px; }
+.ajuda-claude { display: grid; gap: 8px; }
