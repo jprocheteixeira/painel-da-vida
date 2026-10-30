@@ -4,6 +4,7 @@ import { estadoInicial, migrar } from './migracoes.js';
 
 export const CHAVE = 'painel-da-vida:dados';
 export const CHAVE_TEMA = 'painel-da-vida:tema';
+export const CHAVE_OCULTAR = 'painel-da-vida:ocultar-valores';
 
 function armazenamento() {
   try {
@@ -50,4 +51,13 @@ export function lerTema() {
 
 export function salvarTema(tema) {
   try { armazenamento()?.setItem(CHAVE_TEMA, tema); } catch { /* sem efeito */ }
+}
+
+/** Olhinho: valores escondidos neste aparelho? */
+export function lerOcultar() {
+  try { return armazenamento()?.getItem(CHAVE_OCULTAR) === '1'; } catch { return false; }
+}
+
+export function salvarOcultar(ocultar) {
+  try { armazenamento()?.setItem(CHAVE_OCULTAR, ocultar ? '1' : '0'); } catch { /* sem efeito */ }
 }

@@ -671,3 +671,9 @@ kbd { font-family: var(--mono); font-size: 0.78rem; padding: 1px 6px; border: 1p
 .ajuda-resposta h3 { margin: 0 0 6px; font-size: 1rem; }
 .ajuda-resposta ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 6px; }
 .ajuda-claude { display: grid; gap: 8px; }
+
+/* olhinho: troca o ícone e esconde os campos de valor (saldos) enquanto os valores estão ocultos */
+.olho-fechado { display: none; }
+.valores-ocultos .olho-aberto { display: none; }
+.valores-ocultos .olho-fechado { display: inline; }
+.valores-ocultos input[inputmode="decimal"]:not(:focus) { color: transparent; text-shadow: 0 0 9px var(--texto-2); }

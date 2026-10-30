@@ -60,3 +60,10 @@ test('CNPJ digitado só com números ganha pontos, barra e traço', async () => 
   assert.equal(formatarCnpj('123'), '123'); // incompleto: fica como está
   assert.equal(formatarCnpj(''), '');
 });
+
+test('olhinho: esconde os valores em reais', async () => {
+  const { ocultarValores } = await import('../src/utils/dinheiro.js');
+  assert.equal(ocultarValores('Saldo: R$ 1.234,56 · DAS −R$ 86,05 · +R$ 2.600,00'), 'Saldo: R$ •••• · DAS R$ •••• · R$ ••••');
+  assert.equal(ocultarValores('<text>R$ 2,4 mil</text> e R$ 15 mil'), '<text>R$ ••••</text> e R$ ••••');
+  assert.equal(ocultarValores('15/11 a 20/11 · item 1'), '15/11 a 20/11 · item 1'); // datas e números sem R$ ficam
+});

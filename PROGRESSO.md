@@ -32,6 +32,7 @@
 - Depois: salvar ao fechar o app, campos da nota também em Ajustes, CNPJ só com números, pendências apontam onde
   preencher, botão "?" com perguntas prontas e "Perguntar ao Claude". Datas no Google Agenda (aceite removido; aviso de
   preparação da 1ª NFS-e em 09/11). 63/63 testes.
+- Olhinho para esconder os valores (como no Nubank). 64/64 testes.
 
 ### 13/10/2026 — PC de casa
 - Projeto criado. F1 concluída e verificada no navegador (desktop e celular, claro e escuro). 26/26 testes passando
