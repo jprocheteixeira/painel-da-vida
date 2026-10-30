@@ -94,8 +94,21 @@ function cartaoOC(estado) {
   return html`
     <section class="cartao" aria-labelledby="t-oc">
       <h2 id="t-oc">Ordem de Compra</h2>
-      <p class="subtitulo">Nº da OC, código do item, CNPJ do tomador e e-mails ficam em Trabalho PJ → Nota fiscal. Nada disso sai deste aparelho.</p>
+      <p class="subtitulo">Estes dados ficam só neste aparelho (e nos backups): nada vai para a internet.
+        Salva ao sair de cada campo; aparece “Salvo.” embaixo.</p>
       <div class="campos">
+        <div class="campos campos-2">
+          ${html.cru(campoTexto('Nº da OC', 'oc-numero', c.numeroOC, `type="text" inputmode="numeric" data-ao-mudar="campo" data-alvo="contrato.numeroOC" ${c.numeroOC ? '' : 'aria-invalid="true"'}`))}
+          ${html.cru(campoTexto('Código do item na OC', 'oc-codigo', c.codigoItemOC, `type="text" data-ao-mudar="campo" data-alvo="contrato.codigoItemOC" ${c.codigoItemOC ? '' : 'aria-invalid="true"'}`, 'Vai na descrição da nota.'))}
+        </div>
+        <div class="campos campos-2">
+          ${html.cru(campoTexto('Tomador', 'oc-tomador', c.tomador, 'type="text" data-ao-mudar="campo" data-alvo="contrato.tomador"'))}
+          ${html.cru(campoTexto('CNPJ do tomador (matriz)', 'oc-cnpj', c.cnpjTomador, 'type="text" inputmode="numeric" data-ao-mudar="campo" data-alvo="contrato.cnpjTomador"'))}
+        </div>
+        <div class="campos campos-2">
+          ${html.cru(campoTexto('E-mail do DANFSE (PDF)', 'oc-email-danfse', c.emailDanfse, 'type="email" autocomplete="off" data-ao-mudar="campo" data-alvo="contrato.emailDanfse"'))}
+          ${html.cru(campoTexto('E-mail do XML', 'oc-email-xml', c.emailXml, 'type="email" autocomplete="off" data-ao-mudar="campo" data-alvo="contrato.emailXml"'))}
+        </div>
         ${html.cru(campoTexto('Data de entrada da OC', 'oc-entrada', c.dataEntradaOC, 'type="date" data-ao-mudar="campo" data-alvo="contrato.dataEntradaOC" data-tipo="data"'))}
         ${html.cru(itens.length ? html`<div class="tabela-rolagem"><table class="tabela tabela-itens">
           <thead><tr><th scope="col">Item</th><th scope="col">Data para despacho</th><th scope="col">Valor (R$)</th><th scope="col"><span class="visualmente-oculto">Remover</span></th></tr></thead>

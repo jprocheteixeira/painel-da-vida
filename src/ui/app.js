@@ -169,6 +169,17 @@ window.addEventListener('hashchange', () => {
   if (lerRota().nome !== antes) { window.scrollTo(0, 0); main.focus({ preventScroll: true }); }
 });
 
+// os campos salvam no "change" (ao sair do campo): se o app for fechado ou trocado com um campo
+// ainda em edição, tira o foco para disparar o salvamento
+function salvarCampoEmEdicao() {
+  const el = document.activeElement;
+  if (el?.matches?.('input, textarea, select')) el.blur();
+}
+window.addEventListener('pagehide', salvarCampoEmEdicao);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') salvarCampoEmEdicao();
+});
+
 // atualiza "hoje" se o app ficar aberto de um dia para o outro
 let diaRenderizado = ctx.hoje;
 document.addEventListener('visibilitychange', () => {
