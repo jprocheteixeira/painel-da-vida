@@ -5,6 +5,7 @@ import { formatarReais, lerReais, centavosParaCampo } from '../../utils/dinheiro
 import { estimativaContrato } from '../../dominio/contrato.js';
 import { BASES_PRAZO, gerarItens, itensDaOC, totalDaOC } from '../../dominio/oc.js';
 import { TIPOS_FERIADO } from '../../dominio/feriados.js';
+import { formatarCnpj } from '../../utils/documentos.js';
 import { html, icone } from '../util.js';
 import { faixaExemplo } from './pj.js';
 
@@ -46,7 +47,7 @@ function cartaoPerfil(estado) {
       <div class="campos">
         ${html.cru(campoTexto('Nome', 'perfil-nome', p.nome, 'type="text" autocomplete="name" data-ao-mudar="campo" data-alvo="perfil.nome"'))}
         <div class="campos campos-2">
-          ${html.cru(campoTexto('CNPJ (MEI)', 'perfil-cnpj', p.cnpj, 'type="text" inputmode="numeric" data-ao-mudar="campo" data-alvo="perfil.cnpj"'))}
+          ${html.cru(campoTexto('CNPJ (MEI)', 'perfil-cnpj', p.cnpj, 'type="text" inputmode="numeric" data-ao-mudar="campo" data-alvo="perfil.cnpj" data-tipo="cnpj"', 'Só os números; o app põe pontos, barra e traço.'))}
           ${html.cru(campoTexto('Abertura do MEI', 'perfil-abertura', p.aberturaMei, 'type="date" data-ao-mudar="campo" data-alvo="perfil.aberturaMei" data-tipo="data"'))}
         </div>
       </div>
@@ -103,7 +104,7 @@ function cartaoOC(estado) {
         </div>
         <div class="campos campos-2">
           ${html.cru(campoTexto('Tomador', 'oc-tomador', c.tomador, 'type="text" data-ao-mudar="campo" data-alvo="contrato.tomador"'))}
-          ${html.cru(campoTexto('CNPJ do tomador (matriz)', 'oc-cnpj', c.cnpjTomador, 'type="text" inputmode="numeric" data-ao-mudar="campo" data-alvo="contrato.cnpjTomador"'))}
+          ${html.cru(campoTexto('CNPJ do tomador (matriz)', 'oc-cnpj', c.cnpjTomador, 'type="text" inputmode="numeric" data-ao-mudar="campo" data-alvo="contrato.cnpjTomador" data-tipo="cnpj"', 'Só os números; o app põe pontos, barra e traço.'))}
         </div>
         <div class="campos campos-2">
           ${html.cru(campoTexto('E-mail do DANFSE (PDF)', 'oc-email-danfse', c.emailDanfse, 'type="email" autocomplete="off" data-ao-mudar="campo" data-alvo="contrato.emailDanfse"'))}
@@ -216,6 +217,8 @@ function converter(el) {
       }
       return n;
     }
+    case 'cnpj':
+      return formatarCnpj(v);
     case 'data':
       if (v && !ehDataISO(v)) throw new Error('Data inválida.');
       return v || null;
