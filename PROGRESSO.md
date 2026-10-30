@@ -15,11 +15,17 @@
 
 - Resolvidas (Ordem de Compra): nº da OC, e-mails de envio da nota, CNPJ do tomador, prazo (30 DDL), valor fixo mensal.
   Digitar no app: itens da OC (Ajustes), nº da OC, código do item, CNPJ e e-mails (Trabalho PJ → Nota fiscal).
-- Confirmar com Compras a base de contagem dos 30 dias (e se os dias 13 e 14/10 estão cobertos pela OC).
+- Confirmar com Compras a base de contagem dos 30 dias e se pode emitir a NF antes do dia 15 (dias 13 e 14/10: sem problema, valor é fixo).
 - Aceite da OC: confirmado com Compras pelo WhatsApp (marcar "Enviei" no app).
 - Saldo atual das contas e gastos fixos — sem eles a projeção parte de R$ 0.
 - Contador: faturamento MEI pelo valor da NF, DAS no dia 20, limite de R$ 20.250 em 2026; código do serviço × CNAE do MEI.
 - Instalar o Node LTS para rodar `npm test` (os testes também rodam em `tests/index.html`).
+
+## Próximos passos (datas no Google Agenda)
+
+- 09/11: preparar a 1ª NFS-e (acesso ao Emissor Nacional, código do serviço com o contador).
+- 12/11: pedir ao pai o dinheiro do DAS · 13/11: boletim do item 1 · 15–20/11: NF do item 1 (20/11 é feriado) · 19/11: DAS.
+- Ideias para depois: F4 (caixinhas, limite do MEI, DASN-SIMEI), importar CSV de gastos.
 
 ## Registro
 
