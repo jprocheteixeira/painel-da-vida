@@ -16,7 +16,7 @@
 - Resolvidas (Ordem de Compra): nº da OC, e-mails de envio da nota, CNPJ do tomador, prazo (30 DDL), valor fixo mensal.
   Digitar no app: itens da OC (Ajustes), nº da OC, código do item, CNPJ e e-mails (Trabalho PJ → Nota fiscal).
 - Confirmar com Compras a base de contagem dos 30 dias (e se os dias 13 e 14/10 estão cobertos pela OC).
-- Enviar o aceite da OC por e-mail (texto pronto no Painel).
+- Aceite da OC: confirmado com Compras pelo WhatsApp (marcar "Enviei" no app).
 - Saldo atual das contas e gastos fixos — sem eles a projeção parte de R$ 0.
 - Contador: faturamento MEI pelo valor da NF, DAS no dia 20, limite de R$ 20.250 em 2026; código do serviço × CNAE do MEI.
 - Instalar o Node LTS para rodar `npm test` (os testes também rodam em `tests/index.html`).
@@ -29,6 +29,9 @@
   de contagem editável (a confirmar), projeção dos 6 recebimentos com intervalo, simulador dia de emissão × prazo × base,
   lembretes 15/18/20, tarefa de aceite com texto pronto, checklist de pendências. Marcar dias virou opcional.
   `npm test` corrigido para o Node 22. 57/57 testes (Node e navegador).
+- Depois: salvar ao fechar o app, campos da nota também em Ajustes, CNPJ só com números, pendências apontam onde
+  preencher, botão "?" com perguntas prontas e "Perguntar ao Claude". Datas no Google Agenda (aceite removido; aviso de
+  preparação da 1ª NFS-e em 09/11). 63/63 testes.
 
 ### 13/10/2026 — PC de casa
 - Projeto criado. F1 concluída e verificada no navegador (desktop e celular, claro e escuro). 26/26 testes passando

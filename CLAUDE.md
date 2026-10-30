@@ -31,7 +31,7 @@ porque este repositório é público. Ler esse arquivo no início da sessão, se
 ```
 index.html · css/estilo.css · package.json
 src/utils/      datas.js, dinheiro.js
-src/dominio/    feriados.js, calendario.js, contrato.js, oc.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js, agenda.js, pendencias.js
+src/dominio/    feriados.js, calendario.js, contrato.js, oc.js, medicao.js, prazos.js, caixa.js, mei.js, gastos.js, agenda.js, pendencias.js, assistente.js
 src/storage/    migracoes.js, repositorio.js, backup.js, exemplo.js (seed fictício)
 src/ui/         app.js (rotas, eventos, salvamento, dicas), util.js, graficos.js, views/{painel,pj,caixa,gastos,ajustes}.js
 tests/          *.test.js (node --test) + index.html e navegador/ (rodar no navegador)
@@ -104,6 +104,11 @@ privado/        (fora do Git) meu-perfil.json
   **Nº da OC, código do item, CNPJ do tomador e e-mails do DANFSE/XML só no app** (nunca no repositório).
   Suposições minhas: boletim até o último dia útil até o despacho; aprovação até o dia 18. Migração v5→v6: pedidoCompra →
   numeroOC, emailEnvio → emailDanfse, prazo 30, medição da competência M → mês do item M+1.
+
+- 2026-10-30: **Botão "?" (assistente):** perguntas prontas respondidas com os dados do aparelho (`assistente.js`, sem
+  internet) + "Perguntar ao Claude": copia um resumo (sem CNPJ, e-mails nem nº da OC) e abre claude.ai. Chat de verdade
+  dentro do app exigiria chave paga da API: não feito. Prazos importantes também estão no Google Agenda do usuário
+  (criados pela sessão; não usar "Pôr na agenda" do app para não duplicar). Aceite da OC já confirmado pelo WhatsApp.
 
 ## Premissas a confirmar com o usuário/contador
 
