@@ -110,6 +110,10 @@ privado/        (fora do Git) meu-perfil.json
   dentro do app exigiria chave paga da API: não feito. Prazos importantes também estão no Google Agenda do usuário
   (criados pela sessão; não usar "Pôr na agenda" do app para não duplicar). Aceite da OC já confirmado pelo WhatsApp.
 
+- 2026-10-30: **Olhinho** (cabeçalho): esconde todos os "R$ …" da tela (`ocultarValores` no HTML renderizado e na
+  janela "?"; campos de saldo ficam borrados). Preferência por aparelho (`painel-da-vida:ocultar-valores`). Textos
+  copiados (boletim, NF, resumo) continuam com os valores.
+
 ## Premissas a confirmar com o usuário/contador
 
 - Faturamento MEI conta pelo valor da NF (valor fixo de cada item da OC).

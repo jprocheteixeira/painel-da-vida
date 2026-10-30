@@ -55,3 +55,8 @@ export function centavosParaCampo(centavos) {
 export function somar(valores) {
   return valores.reduce((total, v) => total + v, 0);
 }
+
+/** Esconde os valores em reais de um texto ou HTML ("R$ 1.234,56", "−R$ 5,00", "R$ 2,4 mil" → "R$ ••••"). */
+export function ocultarValores(texto) {
+  return String(texto).replace(/[−+-]?R\$\s?\d[\d.]*(?:,\d+)?(?:\s?mil)?/g, 'R$ ••••');
+}

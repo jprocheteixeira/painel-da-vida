@@ -1,6 +1,7 @@
 // Ponto de entrada: carrega os dados, cuida das rotas, dos eventos e do salvamento.
 
-import { carregar, salvar, lerTema, salvarTema } from '../storage/repositorio.js';
+import { carregar, salvar, lerTema, salvarTema, lerOcultar, salvarOcultar } from '../storage/repositorio.js';
+import { ocultarValores } from '../utils/dinheiro.js';
 import { gerarBackup, lerBackup, nomeArquivoBackup } from '../storage/backup.js';
 import { estadoInicial } from '../storage/migracoes.js';
 import { estadoDeExemplo } from '../storage/exemplo.js';
@@ -103,6 +104,19 @@ function aplicarTema(tema) {
 }
 aplicarTema(lerTema());
 
+// ---------- olhinho: esconder os valores em reais (só na tela; textos copiados saem com os valores) ----------
+
+let oculto = lerOcultar();
+function aplicarOlho() {
+  const b = document.getElementById('botao-olho');
+  b?.setAttribute('aria-pressed', String(oculto));
+  b?.setAttribute('aria-label', oculto ? 'Mostrar valores' : 'Esconder valores');
+  b?.setAttribute('title', oculto ? 'Mostrar valores' : 'Esconder valores');
+  document.documentElement.classList.toggle('valores-ocultos', oculto);
+}
+aplicarOlho();
+const mascarar = (texto) => (oculto ? ocultarValores(texto) : texto);
+
 // ---------- renderização ----------
 
 function render() {
@@ -110,7 +124,7 @@ function render() {
   const view = VIEWS[ctx.rota.nome];
   const foco = document.activeElement?.id;
   const rolagem = window.scrollY;
-  main.innerHTML = view.render(ctx);
+  main.innerHTML = mascarar(view.render(ctx));
   document.title = `${view.titulo(ctx)} · Painel da Vida`;
   for (const a of document.querySelectorAll('.abas a')) {
     if (a.dataset.rota === ctx.rota.nome) a.setAttribute('aria-current', 'page');
@@ -132,7 +146,7 @@ function acaoDe(el, atributo) {
 const dialogoAjuda = document.getElementById('ajuda');
 
 function renderAjuda(resposta) {
-  dialogoAjuda.innerHTML = html`
+  dialogoAjuda.innerHTML = mascarar(html`
     <div class="ajuda-topo">
       <h2 id="ajuda-titulo">Tirar uma dúvida</h2>
       <button type="button" class="btn btn-icone btn-fantasma" data-acao="fecharAjuda" aria-label="Fechar">✕</button>
@@ -150,7 +164,7 @@ function renderAjuda(resposta) {
       <button type="submit" class="btn btn-primario">Copiar resumo e abrir o Claude</button>
       <small class="subtitulo">Copia um resumo dos seus prazos (sem CNPJ, e-mails nem nº da OC) com a sua pergunta.
         No Claude, é só colar e enviar.</small>
-    </form>`;
+    </form>`);
 }
 
 async function perguntarClaude(form) {
@@ -185,6 +199,14 @@ document.addEventListener('click', (ev) => {
     return;
   }
   if (nome === 'exportar') { exportar(); return; }
+  if (nome === 'olho') {
+    oculto = !oculto;
+    salvarOcultar(oculto);
+    aplicarOlho();
+    render();
+    avisar(oculto ? 'Valores escondidos' : 'Valores à mostra');
+    return;
+  }
   if (nome === 'tema') {
     const atual = lerTema();
     const prox = TEMAS[(TEMAS.indexOf(atual) + 1) % TEMAS.length];
