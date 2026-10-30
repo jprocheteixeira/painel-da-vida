@@ -94,3 +94,19 @@ test('lembrete de backup no último dia útil do mês', () => {
   e.meta.ultimoBackup = '2026-12-31';
   assert.equal(proximoBackup(e, '2026-12-31'), '2027-01-29');
 });
+
+test('pendências automáticas se resolvem pelos dados', async () => {
+  const { listaPendencias } = await import('../src/dominio/pendencias.js');
+  const e = estadoInicial();
+  e.pendencias[0].texto = 'texto antigo';
+  const feita = (id) => listaPendencias(e).find((p) => p.id === id).feita;
+  assert.equal(feita('oc-numero'), false);
+  assert.match(listaPendencias(e)[0].texto, /Ajustes → Ordem de Compra/); // texto atualizado
+  e.contrato.numeroOC = '9999999';
+  e.contrato.emailDanfse = 'a@exemplo.invalid';
+  assert.equal(feita('oc-numero'), true);
+  assert.equal(feita('oc-emails'), false); // precisa dos dois
+  e.contrato.emailXml = 'b@exemplo.invalid';
+  assert.equal(feita('oc-emails'), true);
+  assert.equal(feita('node'), false);
+});
