@@ -7,11 +7,23 @@ proponha a arquitetura em poucas linhas para eu aprovar.
 ## O que eu quero ver, todo dia
 
 - Quanto gastei hoje, na semana e no mês, e o que sobra até o fim do mês.
-- Gastos por categoria: mercado, gasolina, alimentação fora, transporte, contas da casa, assinaturas, saúde, lazer,
-  outros (categorias editáveis, com orçamento mensal opcional por categoria).
+- Gastos por categoria. **Categorias como opções para eu ligar/desligar** (venha com uma lista pronta, eu escolho
+  as que uso e posso criar outras): Mercado, Gasolina, Alimentação fora (restaurante/lanche), Delivery (iFood etc.),
+  Transporte (Uber/ônibus/estacionamento), Manutenção do carro, Contas da casa (luz, água, gás), Celular e internet,
+  Assinaturas (streaming, apps), Saúde e farmácia, Academia/esporte, Roupas, Cuidados pessoais, Lazer e saídas,
+  Viagem, Presentes, Educação/cursos, Casa e utensílios, Pets, Trabalho/MEI, Ajuda à família, Outros.
+- Orçamento mensal por categoria **opcional**: ainda não sei meus limites. Depois de 1–2 meses de uso, o app sugere
+  um limite com base na média do que eu gastei.
 - O que tenho que pagar e quando: contas fixas, faturas de cartão, parcelas, boletos, impostos. Lembrete antes do
   vencimento e botão "Paguei".
-- Fatura do cartão em aberto: quanto já gastei no cartão neste ciclo e quando vence.
+- Fatura do cartão em aberto: quanto já gastei no cartão neste ciclo e quando vence. Dia de fechamento e de
+  vencimento são configuração no app (eu informo na hora; não gravar no repositório). Compra feita depois do
+  fechamento vai para a fatura seguinte.
+- Contas fixas: hoje não tenho nenhuma. Venha com **exemplos desligados** para eu preencher se surgirem (celular,
+  internet, academia, streaming, aluguel, seguro do carro, IPVA, licenciamento). Também não tenho parcelas agora,
+  mas o app precisa aceitar compra parcelada no cartão (parcela X de N em cada fatura).
+- **Gastos de outra pessoa:** talvez eu assuma contas que hoje são da minha mãe, ainda não sei como. Cada lançamento
+  e conta deve poder ter um campo opcional "para quem" (eu / família), com o resumo separando os dois.
 - Perguntas rápidas: "quanto gastei com mercado em novembro?", "quanto com gasolina nos últimos 30 dias?".
 
 ## O mais importante: lançamento quase automático, sem importar extrato no fim do mês
@@ -68,5 +80,8 @@ aproximada + estabelecimento, e me perguntar quando houver dúvida.
 - Me pedir exemplos reais das notificações do Nubank (compra no crédito, débito, Pix enviado/recebido, estorno) para
   montar as regras de leitura — com valores e nomes trocados se forem para o repositório.
 - Dia de fechamento e de vencimento da fatura do Nubank; contas fixas e parcelas (esses valores ficam fora do Git).
-- Repositório público (Pages grátis) ou privado?
-- Quero que depois esse app alimente os gastos do meu outro projeto ("Painel da Vida")?
+- Repositório: se eu não decidir, usar **público** (Pages grátis), com zero dado pessoal no código.
+- Integração com o meu outro projeto, o "Painel da Vida" (app de PJ/MEI, prazos e projeção de caixa, também HTML/JS
+  puro com dados no localStorage): ainda não decidi. Deixar uma **exportação em JSON/CSV** dos lançamentos por
+  categoria e mês, com formato documentado, para o Painel poder importar ou ler depois. Não construir a integração
+  agora.

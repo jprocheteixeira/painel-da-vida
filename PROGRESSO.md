@@ -24,10 +24,17 @@
 ## Próximos passos (datas no Google Agenda)
 
 - 09/11: preparar a 1ª NFS-e (acesso ao Emissor Nacional, código do serviço com o contador).
-- 12/11: pedir ao pai o dinheiro do DAS · 13/11: boletim do item 1 · 15–20/11: NF do item 1 (20/11 é feriado) · 19/11: DAS.
+- 21/12 (previsto): pagamento do item 1 — conferir se caiu; se não, perguntar a Compras a base dos 30 DDL.
 - Ideias para depois: F4 (caixinhas, limite do MEI, DASN-SIMEI), importar CSV de gastos.
 
 ## Registro
+
+### 24/11/2026 — sessão na nuvem
+- **1ª NFS-e (item 1) emitida em 20/11** (último dia da janela). 30 DDL contados da emissão → 20/12 (domingo) →
+  pagamento previsto **seg 21/12/2026**. Base de contagem ainda a confirmar com Compras. Marcar "emitida em 20/11" no app.
+- Integração com banco: Nubank/PicPay não têm API para pessoa física; Open Finance só para instituições autorizadas.
+  Decidido fazer um **projeto separado** de gastos diários (notificação do Nubank no Android → MacroDroid → Google
+  Apps Script → Google Sheets). Prompt inicial em `prompt-novo-projeto-gastos.md`.
 
 ### 30/10/2026 — sessão na nuvem
 - Ordem de Compra (schema v6): itens mensais de valor fixo, janela da NFS-e 15–20 (recusa depois do dia 20, alerta de
