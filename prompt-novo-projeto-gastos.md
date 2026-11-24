@@ -16,15 +16,16 @@ proponha a arquitetura em poucas linhas para eu aprovar.
 
 ## O mais importante: lançamento quase automático, sem importar extrato no fim do mês
 
-Bancos que uso: [PREENCHER — ex.: PicPay, Nubank]. Celular: [PREENCHER — Android ou iPhone].
+Banco que uso: **Nubank** (conta e cartão de crédito). Celular: **Android**. O Nubank me avisa cada compra e Pix por
+**notificação no celular**; não sei se também manda e-mail.
 Sei que PicPay e os outros bancos não têm API para pessoa física, e que o Open Finance só é aberto para empresas
 autorizadas pelo Banco Central. Então quero combinar estes caminhos, nesta ordem:
 
-1. **Notificações do banco no celular (se for Android):** o MacroDroid (ou Tasker) lê a notificação de compra/Pix do
+1. **Notificações do Nubank no celular (caminho principal):** o MacroDroid (ou Tasker) lê a notificação de compra/Pix do
    app do banco e envia por HTTP para o meu "backend" (passo 4). O app transforma o texto em lançamento (valor,
    estabelecimento, data, conta/cartão) com regras de leitura por banco e testes com exemplos reais de notificação.
-2. **E-mails de compra do banco/cartão:** um Google Apps Script com gatilho de tempo lê os e-mails de aviso de compra
-   no Gmail (por rótulo/remetente), extrai os dados e grava. Serve também no iPhone.
+2. **E-mails de compra (só se o Nubank mandar):** um Google Apps Script com gatilho de tempo lê os e-mails de aviso
+   de compra no Gmail (por rótulo/remetente), extrai os dados e grava. Verificar comigo se esses e-mails existem.
 3. **Lançamento manual em 3 segundos:** tela de "novo gasto" que abre direto pelo atalho na tela inicial do celular,
    com valor, categoria sugerida e pronto.
 4. **Depois, se valer a pena:** Open Finance por um agregador (Pluggy/Belvo — verificar se existe plano gratuito para
@@ -57,13 +58,15 @@ aproximada + estabelecimento, e me perguntar quando houver dúvida.
   troco de computador e o histórico das conversas não vai junto. No fim do dia, quando eu disser "encerrar":
   atualizar os dois, commit, push e confirmar.
 - Entregar em fases pequenas, cada uma funcionando: F1 planilha + Apps Script + lançamento manual + tela "hoje/mês";
-  F2 notificações do MacroDroid (ou e-mails, se iPhone) + categorização; F3 contas a pagar + lembretes + fatura do
+  F2 notificações do Nubank pelo MacroDroid + categorização; F3 contas a pagar + lembretes + fatura do
   cartão; F4 gráficos por categoria e orçamento; F5 Open Finance (opcional).
 - Me guiar passo a passo nas partes fora do código (criar a planilha, publicar o Apps Script, configurar o
   MacroDroid), com textos curtos e diretos.
 
 ## Perguntas para me fazer antes de começar
 
-- Android ou iPhone? Quais bancos e cartões? Os apps desses bancos mandam notificação/e-mail a cada compra e Pix?
+- Me pedir exemplos reais das notificações do Nubank (compra no crédito, débito, Pix enviado/recebido, estorno) para
+  montar as regras de leitura — com valores e nomes trocados se forem para o repositório.
+- Dia de fechamento e de vencimento da fatura do Nubank; contas fixas e parcelas (esses valores ficam fora do Git).
 - Repositório público (Pages grátis) ou privado?
 - Quero que depois esse app alimente os gastos do meu outro projeto ("Painel da Vida")?
